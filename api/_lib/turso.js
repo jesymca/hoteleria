@@ -317,7 +317,7 @@ export async function initDB() {
                     'J-501234567',
                     '+582952001122',
                     'Av. Aldonza Manrique, Playa El Agua, Nueva Esparta',
-                    'https://pub-49558c729b6b41ec952687ab33845c74.r2.dev/default-logo.png',
+                    'img/logo.png',
                     'ACTIVE',
                     trialEnds.toISOString(),
                     '#0d6efd',
