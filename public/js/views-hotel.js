@@ -1127,7 +1127,14 @@ export const ViewsHotel = {
                 });
                 State.setHotel(updatedHotel);
                 State.toggleDarkMode(dark_mode);
-                UI.showToast('Perfil del hotel actualizado correctamente.', 'success');
+
+                // Real-time Navbar Brand Logo & Text Update
+                const brandLogo = document.getElementById('navBrandLogo');
+                const brandText = document.getElementById('navBrandText');
+                if (brandLogo && updatedHotel.logo_url) brandLogo.src = updatedHotel.logo_url;
+                if (brandText && updatedHotel.name) brandText.textContent = updatedHotel.name;
+
+                UI.showToast('Perfil y marca del hotel actualizados en tiempo real ✨', 'success');
             } catch (err) {
                 UI.showToast(err.message, 'danger');
             }

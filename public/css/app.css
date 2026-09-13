@@ -7,10 +7,10 @@
     --text-color: #212529;
     --text-muted: #6c757d;
     --border-color: #dee2e6;
-    --navbar-bg: rgba(255, 255, 255, 0.95);
+    --navbar-bg: rgba(255, 255, 255, 0.96);
     --glass-bg: rgba(255, 255, 255, 0.85);
     --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-    --shadow-md: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    --shadow-md: 0 0.5rem 1rem rgba(0, 0, 0, 0.12);
 }
 
 [data-theme="dark"] {
@@ -21,7 +21,7 @@
     --text-color: #e9ecef;
     --text-muted: #adb5bd;
     --border-color: #333333;
-    --navbar-bg: rgba(30, 30, 30, 0.95);
+    --navbar-bg: rgba(30, 30, 30, 0.96);
     --glass-bg: rgba(30, 30, 30, 0.85);
     --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.5);
     --shadow-md: 0 0.5rem 1rem rgba(0, 0, 0, 0.7);
@@ -35,18 +35,71 @@ body {
     min-height: 100vh;
 }
 
-/* Glassmorphism & Navbar */
+/* Glassmorphism & Compact Navbar */
 .navbar-custom {
     background-color: var(--navbar-bg);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border-color);
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
 }
 
 .brand-logo {
-    height: 38px;
-    width: auto;
+    height: 32px;
+    width: 32px;
+    border-radius: 6px;
     object-fit: contain;
+    background-color: #ffffff;
+    padding: 2px;
+    border: 1px solid var(--border-color);
+}
+
+.brand-title {
+    font-size: 0.92rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.max-w-xs {
+    max-width: 190px;
+}
+
+/* Compact Nav Links */
+.navbar-nav .nav-link {
+    font-size: 0.83rem;
+    font-weight: 500;
+    padding: 0.32rem 0.55rem !important;
+    border-radius: 6px;
+    white-space: nowrap;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.navbar-nav .nav-link:hover {
+    background-color: rgba(13, 110, 253, 0.08);
+}
+
+.navbar-nav .nav-link.active {
+    font-weight: 600;
+    color: var(--primary-color) !important;
+}
+
+/* BCV Live Badge - Compact Pill */
+.bcv-ticker {
+    background: linear-gradient(135deg, #0d6efd, #0b5ed7);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.78rem;
+    white-space: nowrap;
+    box-shadow: 0 2px 4px rgba(13, 110, 253, 0.2);
+}
+
+.user-dropdown-btn {
+    font-size: 0.82rem;
+    padding: 0.3rem 0.65rem;
+    border-radius: 8px;
 }
 
 /* Rack Cards Status Styling */
@@ -58,7 +111,7 @@ body {
 }
 
 .room-card:hover {
-    transform: translateY(-4px);
+    transform: translateY(-3px);
     box-shadow: var(--shadow-md);
 }
 
@@ -122,30 +175,19 @@ body {
     color: #ffc107;
 }
 
-/* BCV Live Badge */
-.bcv-ticker {
-    background: linear-gradient(135deg, #0d6efd, #0b5ed7);
-    color: white;
-    padding: 6px 14px;
-    border-radius: 20px;
-    font-weight: 600;
-    font-size: 0.88rem;
-    box-shadow: 0 2px 5px rgba(13, 110, 253, 0.3);
-}
-
 /* Toast Container Position */
 #toastContainer {
     position: fixed;
-    top: 80px;
+    top: 70px;
     right: 20px;
     z-index: 9999;
 }
 
 /* Hero Section */
 .hero-section {
-    background: linear-gradient(135deg, rgba(13, 110, 253, 0.9), rgba(11, 94, 215, 0.95)), url('img/logo.png') center/cover no-repeat;
+    background: linear-gradient(135deg, rgba(13, 110, 253, 0.9), rgba(11, 94, 215, 0.95)), url('../img/logo.png') center/cover no-repeat;
     color: white;
-    padding: 90px 0;
+    padding: 80px 0;
     border-radius: 0 0 24px 24px;
 }
 
@@ -164,8 +206,13 @@ body {
 }
 
 /* Responsive Utilities */
-@media (max-width: 768px) {
-    .hero-section {
-        padding: 50px 0;
+@media (max-width: 991px) {
+    .navbar-collapse {
+        background-color: var(--card-bg);
+        padding: 1rem;
+        border-radius: 12px;
+        margin-top: 0.5rem;
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--border-color);
     }
 }

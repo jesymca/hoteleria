@@ -1,4 +1,4 @@
-// Hash Routing Controller
+// Hash Routing Controller & Dynamic Branding Navbar
 import { State } from './state.js';
 import { ViewsHotel } from './views-hotel.js';
 import { ViewsAdmin } from './views-admin.js';
@@ -23,7 +23,7 @@ export const Router = {
         if (!isAuthenticated && hash !== '#inicio' && hash !== '#login' && hash !== '#registro') {
             landingContainer.classList.remove('d-none');
             mainContainer.classList.add('d-none');
-            navbarNav.innerHTML = '';
+            this.renderNavbar(navbarNav, null);
             return;
         }
 
@@ -105,17 +105,33 @@ export const Router = {
     },
 
     renderNavbar(navContainer, user) {
+        const brandLogo = document.getElementById('navBrandLogo');
+        const brandText = document.getElementById('navBrandText');
+        const hotel = State.getHotel();
+
+        // Dynamic Brand Update for Hotel Owners / Staff
+        if (user && hotel && (user.role === 'HOTEL_ADMIN' || user.role === 'HOTEL_STAFF')) {
+            if (brandLogo) brandLogo.src = hotel.logo_url || 'img/logo.png';
+            if (brandText) brandText.textContent = hotel.name || 'Mi Hotel';
+        } else if (user && user.role === 'SUPERADMIN') {
+            if (brandLogo) brandLogo.src = 'img/logo.png';
+            if (brandText) brandText.textContent = 'SuperAdmin SaaS';
+        } else {
+            if (brandLogo) brandLogo.src = 'img/logo.png';
+            if (brandText) brandText.textContent = 'Hotelería Venezuela';
+        }
+
         if (!user) {
             navContainer.innerHTML = `
-                <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center gap-1">
                     <li class="nav-item me-2">
                         <span class="bcv-ticker" id="bcvTickerBadge"><i class="bi bi-currency-dollar me-1"></i>BCV: Cargando...</span>
                     </li>
                     <li class="nav-item">
-                        <button class="btn btn-outline-primary me-2 fw-semibold" id="btnNavLogin"><i class="bi bi-box-arrow-in-right me-1"></i>Iniciar Sesión</button>
+                        <button class="btn btn-sm btn-outline-primary fw-semibold" id="btnNavLogin"><i class="bi bi-box-arrow-in-right me-1"></i>Iniciar Sesión</button>
                     </li>
                     <li class="nav-item">
-                        <button class="btn btn-primary fw-semibold" id="btnNavRegister"><i class="bi bi-person-plus me-1"></i>Registrar Mi Hotel</button>
+                        <button class="btn btn-sm btn-primary fw-semibold" id="btnNavRegister"><i class="bi bi-person-plus me-1"></i>Registrar Mi Hotel</button>
                     </li>
                 </ul>
             `;
@@ -125,48 +141,49 @@ export const Router = {
         const isSuperAdmin = user.role === 'SUPERADMIN';
         const isStaff = user.role === 'HOTEL_STAFF';
 
-        let menuHtml = `<ul class="navbar-nav me-auto mb-2 mb-lg-0 fw-medium">`;
+        let menuHtml = `<ul class="navbar-nav me-auto mb-2 mb-lg-0 align-items-center gap-1">`;
 
         if (isSuperAdmin) {
             menuHtml += `
-                <li class="nav-item"><a class="nav-link" href="#admin-comercios"><i class="bi bi-buildings me-1"></i>Hoteles Afiliados</a></li>
-                <li class="nav-item"><a class="nav-link" href="#admin-pagos"><i class="bi bi-shield-check me-1"></i>Verificar Pagos</a></li>
-                <li class="nav-item"><a class="nav-link" href="#admin-ventas"><i class="bi bi-currency-dollar me-1"></i>Tarifas SaaS</a></li>
-                <li class="nav-item"><a class="nav-link" href="#admin-bancos"><i class="bi bi-bank me-1"></i>Bancos (31)</a></li>
-                <li class="nav-item"><a class="nav-link" href="#admin-metodos"><i class="bi bi-wallet2 me-1"></i>Métodos Pago</a></li>
-                <li class="nav-item"><a class="nav-link" href="#admin-conectividad"><i class="bi bi-activity me-1"></i>Salud Infraestructura</a></li>
+                <li class="nav-item"><a class="nav-link" href="#admin-comercios"><i class="bi bi-buildings me-1"></i>Comercios</a></li>
+                <li class="nav-item"><a class="nav-link" href="#admin-pagos"><i class="bi bi-shield-check me-1"></i>Pagos</a></li>
+                <li class="nav-item"><a class="nav-link" href="#admin-ventas"><i class="bi bi-currency-dollar me-1"></i>Tarifas</a></li>
+                <li class="nav-item"><a class="nav-link" href="#admin-bancos"><i class="bi bi-bank me-1"></i>Bancos</a></li>
+                <li class="nav-item"><a class="nav-link" href="#admin-metodos"><i class="bi bi-wallet2 me-1"></i>Métodos</a></li>
+                <li class="nav-item"><a class="nav-link" href="#admin-conectividad"><i class="bi bi-activity me-1"></i>Salud API</a></li>
             `;
         } else if (isStaff) {
             menuHtml += `
-                <li class="nav-item"><a class="nav-link text-warning fw-bold" href="#limpieza"><i class="bi bi-stars me-1"></i>Panel Mucamas / Limpieza</a></li>
-                <li class="nav-item"><a class="nav-link" href="#habitaciones"><i class="bi bi-grid-3x3-gap me-1"></i>Rack Habitaciones</a></li>
-                <li class="nav-item"><a class="nav-link" href="#consumos"><i class="bi bi-receipt me-1"></i>Cargar Consumos</a></li>
+                <li class="nav-item"><a class="nav-link text-warning fw-bold" href="#limpieza"><i class="bi bi-stars me-1"></i>Limpieza / Mucamas</a></li>
+                <li class="nav-item"><a class="nav-link" href="#habitaciones"><i class="bi bi-grid-3x3-gap me-1"></i>Rack</a></li>
+                <li class="nav-item"><a class="nav-link" href="#consumos"><i class="bi bi-receipt me-1"></i>Consumos</a></li>
             `;
         } else {
             menuHtml += `
-                <li class="nav-item"><a class="nav-link" href="#habitaciones"><i class="bi bi-grid-3x3-gap me-1"></i>Rack Habitaciones</a></li>
-                <li class="nav-item"><a class="nav-link" href="#limpieza"><i class="bi bi-stars me-1"></i>Mucamas / Limpieza</a></li>
-                <li class="nav-item"><a class="nav-link" href="#reservas"><i class="bi bi-calendar-check me-1"></i>Reservas & Huéspedes</a></li>
-                <li class="nav-item"><a class="nav-link" href="#consumos"><i class="bi bi-receipt me-1"></i>Consumos Extras</a></li>
-                <li class="nav-item"><a class="nav-link" href="#facturacion"><i class="bi bi-file-earmark-pdf me-1"></i>Facturación PDF</a></li>
-                <li class="nav-item"><a class="nav-link" href="#areas"><i class="bi bi-building-gear me-1"></i>Áreas / Personal</a></li>
-                <li class="nav-item"><a class="nav-link" href="#ajustes"><i class="bi bi-gear me-1"></i>Perfil Hotel</a></li>
-                <li class="nav-item"><a class="nav-link text-success fw-bold" href="#pagos"><i class="bi bi-credit-card me-1"></i>Membresía</a></li>
+                <li class="nav-item"><a class="nav-link" href="#habitaciones"><i class="bi bi-grid-3x3-gap me-1"></i>Rack</a></li>
+                <li class="nav-item"><a class="nav-link" href="#limpieza"><i class="bi bi-stars me-1"></i>Mucamas</a></li>
+                <li class="nav-item"><a class="nav-link" href="#reservas"><i class="bi bi-calendar-check me-1"></i>Reservas</a></li>
+                <li class="nav-item"><a class="nav-link" href="#consumos"><i class="bi bi-receipt me-1"></i>Consumos</a></li>
+                <li class="nav-item"><a class="nav-link" href="#facturacion"><i class="bi bi-file-earmark-pdf me-1"></i>Facturas</a></li>
+                <li class="nav-item"><a class="nav-link" href="#areas"><i class="bi bi-building-gear me-1"></i>Áreas</a></li>
+                <li class="nav-item"><a class="nav-link" href="#ajustes"><i class="bi bi-gear me-1"></i>Perfil</a></li>
+                <li class="nav-item"><a class="nav-link text-success fw-bold" href="#pagos"><i class="bi bi-credit-card me-1"></i>Suscripción</a></li>
             `;
         }
 
         menuHtml += `</ul>`;
 
         menuHtml += `
-            <div class="d-flex align-items-center gap-3">
+            <div class="d-flex align-items-center gap-2 mt-2 mt-lg-0">
                 <span class="bcv-ticker" id="bcvTickerBadge"><i class="bi bi-currency-dollar me-1"></i>BCV: Cargando...</span>
                 <div class="dropdown">
-                    <button class="btn btn-outline-secondary dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown">
-                        <i class="bi bi-person-circle fs-5"></i>
-                        <span>${user.name}</span>
+                    <button class="btn btn-sm btn-outline-secondary user-dropdown-btn dropdown-toggle d-flex align-items-center gap-1" type="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-person-circle"></i>
+                        <span class="text-truncate" style="max-width: 110px;">${user.name}</span>
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow">
-                        <li><span class="dropdown-item-text text-muted small">${user.email} (${user.role})</span></li>
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
+                        <li><span class="dropdown-item-text text-muted small">${user.email}</span></li>
+                        <li><span class="dropdown-item-text text-muted small fw-bold">Rol: ${user.role}</span></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><button class="dropdown-item text-danger" id="btnLogout"><i class="bi bi-box-arrow-right me-2"></i>Cerrar Sesión</button></li>
                     </ul>
