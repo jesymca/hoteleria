@@ -3,7 +3,79 @@ import { API } from './api.js';
 import { State } from './state.js';
 import { UI } from './ui.js';
 import { Uploader } from './uploader.js';
-import { PDFService } from './pdf-service.js';
+// Helper CSV Utility for POS catalog imports
+const CSVUtil = {
+    downloadTemplate(filename, content) {
+        const blob = new Blob(["\uFEFF" + content], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    },
+
+    parse(text) {
+        const lines = text.split(/\r\n|\n/).map(l => l.trim()).filter(l => l.length > 0);
+        if (lines.length < 2) return [];
+
+        const parseLine = (line) => {
+            const result = [];
+            let cur = '';
+            let inQuotes = false;
+            const separator = line.includes(';') ? ';' : ',';
+
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === separator && !inQuotes) {
+                    result.push(cur.trim().replace(/^"|"$/g, ''));
+                    cur = '';
+                } else {
+                    cur += char;
+                }
+            }
+            result.push(cur.trim().replace(/^"|"$/g, ''));
+            return result;
+        };
+
+        const rawHeaders = parseLine(lines[0]);
+        const headers = rawHeaders.map(h => 
+            h.toLowerCase()
+             .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+             .replace(/[^a-z0-9_]/g, "")
+        );
+
+        const rows = [];
+        for (let i = 1; i < lines.length; i++) {
+            const values = parseLine(lines[i]);
+            if (values.length === 0 || values.every(v => !v)) continue;
+            
+            const row = {};
+            headers.forEach((h, idx) => {
+                row[h] = values[idx] || '';
+            });
+
+            const dept = row.departamento || row.departamentotype || row.dept || row.seccion || row.tipo || '';
+            const name = row.nombre || row.name || row.producto || row.servicio || row.item || '';
+            const desc = row.descripcion || row.description || row.detalles || row.detalle || '';
+            const price = row.precio_usd || row.preciousd || row.precio || row.price || row.costo || '';
+
+            rows.push({
+                departmentType: dept.trim().toUpperCase(),
+                name: name.trim(),
+                description: desc.trim(),
+                priceUsd: parseFloat(price) || 0,
+                rawPrice: price,
+                isValid: name.trim().length > 0 && !isNaN(parseFloat(price)) && parseFloat(price) >= 0
+            });
+        }
+        return rows;
+    }
+};
 
 export const ViewsHotel = {
     // 1. RACK DE HABITACIONES INTERACTIVO
@@ -851,7 +923,8 @@ export const ViewsHotel = {
                         <h2 class="fw-bold mb-1"><i class="bi bi-building-gear text-primary me-2"></i>Áreas Internas & Personal</h2>
                         <p class="text-muted mb-0">Gestión de departamentos y personal autorizado con búsqueda rápida</p>
                     </div>
-                    <div class="d-flex gap-2">
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button class="btn btn-outline-success shadow-sm fw-bold" id="btnGlobalBulkCsv"><i class="bi bi-file-earmark-spreadsheet-fill me-1"></i>Carga Masiva POS (CSV Global)</button>
                         <button class="btn btn-outline-primary shadow-sm" id="btnCreateDept"><i class="bi bi-plus-lg me-1"></i>Activar Nueva Área</button>
                         <button class="btn btn-primary shadow-sm" id="btnCreateStaff"><i class="bi bi-person-plus-fill me-1"></i>Crear Usuario Personal</button>
                     </div>
@@ -907,6 +980,145 @@ export const ViewsHotel = {
             `;
 
             container.innerHTML = html;
+
+            // Global Bulk CSV Modal Handler
+            const btnGlobalCsv = container.querySelector('#btnGlobalBulkCsv');
+            if (btnGlobalCsv) {
+                btnGlobalCsv.onclick = () => {
+                    UI.showModal({
+                        title: 'Carga Masiva Global de Productos y Servicios POS',
+                        bodyHtml: `
+                            <div class="card border-0 bg-light p-3 mb-3 rounded-3">
+                                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                                    <div>
+                                        <h6 class="fw-bold mb-1 text-dark"><i class="bi bi-download text-success me-1"></i>Paso 1: Descarga la plantilla CSV Global</h6>
+                                        <p class="small text-muted mb-0">Alimenta todos los POS del hotel desde un solo archivo (Headers: <code>departamento, nombre, descripcion, precio_usd</code>)</p>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-outline-success fw-bold" id="btnDownloadGlobalCsv"><i class="bi bi-file-earmark-arrow-down me-1"></i>Descargar Plantilla Global</button>
+                                </div>
+                                <div class="small bg-white p-2 rounded border mb-2 text-muted">
+                                    <strong>Departamentos válidos:</strong> RESTAURANTE, BAR, SPA, PELUQUERIA, GALERIA, GUIA_TURISTICA, TAXIS, LANCHAS, TINTORERIA, ZAPATERIA, MANICURISTA, PEDICURISTA, TECNOLOGIA, ALQUILER_ESPACIOS, ALQUILER_EQUIPOS, HOUSEKEEPING.
+                                </div>
+                                <hr class="my-2">
+                                <div>
+                                    <h6 class="fw-bold mb-1 text-dark"><i class="bi bi-upload text-primary me-1"></i>Paso 2: Selecciona tu archivo CSV editado</h6>
+                                    <input type="file" class="form-control form-control-sm mt-1" id="globalCsvFileInput" accept=".csv,text/csv">
+                                </div>
+                            </div>
+
+                            <div id="globalCsvPreviewSection" style="display: none;">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-eye me-1 text-primary"></i>Previsualización en Vivo</h6>
+                                    <span id="globalCsvParsedCountBadge" class="badge bg-primary">0 ítems</span>
+                                </div>
+                                <div class="table-responsive border rounded custom-scroll" style="max-height: 250px; overflow-y: auto;">
+                                    <table class="table table-sm table-hover align-middle mb-0 small">
+                                        <thead class="table-light sticky-top">
+                                            <tr>
+                                                <th>#</th>
+                                                <th>Departamento POS</th>
+                                                <th>Nombre</th>
+                                                <th>Descripción</th>
+                                                <th>Precio ($USD)</th>
+                                                <th>Estado</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="globalCsvPreviewTbody"></tbody>
+                                    </table>
+                                </div>
+                                <button type="button" class="btn btn-success w-100 py-2 shadow-sm mt-3" id="btnUploadGlobalBulk" disabled><i class="bi bi-cloud-arrow-up-fill me-1"></i>Confirmar y Cargar Catálogo POS Global</button>
+                            </div>
+                        `,
+                        footerHtml: `<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>`
+                    });
+
+                    // Download Global CSV template
+                    const btnDlGlobal = document.getElementById('btnDownloadGlobalCsv');
+                    if (btnDlGlobal) {
+                        btnDlGlobal.onclick = () => {
+                            const sampleCsv = `departamento,nombre,descripcion,precio_usd\nRESTAURANTE,"Pabellón Criollo Especial","Arroz, carne mechada, caraotas y tajadas",12.00\nBAR,"Mojito Cubano Tradicional","Ron blanco, menta y limón",6.00\nSPA,"Masaje Relajante Corporal","Terapia 45 minutos",35.00\nTAXIS,"Traslado Aeropuerto","Vehículo con aire acondicionado",25.00\nLANCHAS,"Paseo a Cayos","Traslado en peñero ida y vuelta",25.00\n`;
+                            CSVUtil.downloadTemplate(`plantilla_catalogo_global_pos.csv`, sampleCsv);
+                        };
+                    }
+
+                    // Global CSV parsing & live preview
+                    const globalCsvInput = document.getElementById('globalCsvFileInput');
+                    const globalPreviewSec = document.getElementById('globalCsvPreviewSection');
+                    const globalTbody = document.getElementById('globalCsvPreviewTbody');
+                    const globalCountBadge = document.getElementById('globalCsvParsedCountBadge');
+                    const btnUploadGlobal = document.getElementById('btnUploadGlobalBulk');
+
+                    let currentGlobalItems = [];
+
+                    if (globalCsvInput) {
+                        globalCsvInput.onchange = (evt) => {
+                            const file = evt.target.files[0];
+                            if (!file) return;
+
+                            const reader = new FileReader();
+                            reader.onload = (e) => {
+                                const text = e.target.result;
+                                currentGlobalItems = CSVUtil.parse(text);
+
+                                if (currentGlobalItems.length === 0) {
+                                    UI.showToast('El archivo CSV está vacío o no tiene el formato correcto.', 'warning');
+                                    globalPreviewSec.style.display = 'none';
+                                    if (btnUploadGlobal) btnUploadGlobal.disabled = true;
+                                    return;
+                                }
+
+                                const validItems = currentGlobalItems.filter(x => x.isValid && x.departmentType);
+                                if (globalCountBadge) globalCountBadge.textContent = `${validItems.length} de ${currentGlobalItems.length} ítems válidos`;
+
+                                if (globalTbody) {
+                                    globalTbody.innerHTML = currentGlobalItems.map((item, idx) => `
+                                        <tr class="${item.isValid && item.departmentType ? '' : 'table-danger'}">
+                                            <td>${idx + 1}</td>
+                                            <td><span class="badge bg-secondary-subtle text-secondary border">${item.departmentType || 'RESTAURANTE'}</span></td>
+                                            <td class="fw-bold">${item.name || '<span class="text-danger">Falta nombre</span>'}</td>
+                                            <td class="text-muted small">${item.description || '-'}</td>
+                                            <td class="fw-bold text-primary">$${Number(item.priceUsd || 0).toFixed(2)}</td>
+                                            <td>
+                                                ${item.isValid && item.departmentType ? 
+                                                    `<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle me-1"></i>Listo</span>` :
+                                                    `<span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-x-circle me-1"></i>Inválido</span>`
+                                                }
+                                            </td>
+                                        </tr>
+                                    `).join('');
+                                }
+
+                                if (globalPreviewSec) globalPreviewSec.style.display = 'block';
+                                if (btnUploadGlobal) btnUploadGlobal.disabled = validItems.length === 0;
+                            };
+                            reader.readAsText(file);
+                        };
+                    }
+
+                    // Bulk Global upload handler
+                    if (btnUploadGlobal) {
+                        btnUploadGlobal.onclick = async () => {
+                            const validItems = currentGlobalItems.filter(x => x.isValid && x.departmentType);
+                            if (validItems.length === 0) return;
+
+                            try {
+                                btnUploadGlobal.disabled = true;
+                                btnUploadGlobal.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Cargando productos al sistema...';
+
+                                const res = await API.post('/catalog/bulk', { items: validItems });
+                                UI.showToast(res.message || 'Carga global completada exitosamente.', 'success');
+
+                                bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
+                                this.renderAreas(container);
+                            } catch (err) {
+                                UI.showToast(err.message, 'danger');
+                                btnUploadGlobal.disabled = false;
+                                btnUploadGlobal.innerHTML = '<i class="bi bi-cloud-arrow-up-fill me-1"></i>Confirmar y Cargar Catálogo POS Global';
+                            }
+                        };
+                    }
+                };
+            }
 
             const deptListContainer = container.querySelector('#deptListContainer');
             const staffListContainer = container.querySelector('#staffListContainer');
@@ -1798,46 +2010,187 @@ export const ViewsHotel = {
                     UI.showModal({
                         title: `Agregar Nuevo Ítem a ${title}`,
                         bodyHtml: `
-                            <form id="formNewCatItem">
-                                <div class="mb-3">
-                                    <label class="form-label">Nombre del Producto / Servicio</label>
-                                    <input type="text" class="form-control" id="catItemName" placeholder="Ej: Hamburguesa Gourmet, Masaje Terapéutico, Traslado Aeropuerto" required>
+                            <ul class="nav nav-tabs nav-fill mb-3" id="catModalTabs" role="tablist">
+                                <li class="nav-item">
+                                    <button class="nav-link active fw-bold" id="single-tab" data-bs-toggle="tab" data-bs-target="#tab-single" type="button"><i class="bi bi-plus-circle me-1"></i>Ítem Individual</button>
+                                </li>
+                                <li class="nav-item">
+                                    <button class="nav-link fw-bold text-success" id="csv-tab" data-bs-toggle="tab" data-bs-target="#tab-csv" type="button"><i class="bi bi-file-earmark-spreadsheet me-1"></i>Carga Masiva (CSV)</button>
+                                </li>
+                            </ul>
+                            <div class="tab-content" id="catModalTabContent">
+                                <div class="tab-pane fade show active" id="tab-single">
+                                    <form id="formNewCatItem">
+                                        <div class="mb-3">
+                                            <label class="form-label fw-semibold">Nombre del Producto / Servicio</label>
+                                            <input type="text" class="form-control" id="catItemName" placeholder="Ej: Hamburguesa Gourmet, Masaje Terapéutico, Traslado Aeropuerto" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label fw-semibold">Descripción / Detalle</label>
+                                            <input type="text" class="form-control" id="catItemDesc" placeholder="Ej: Incluye bebidas / Duración 45 min...">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label fw-semibold">Precio ($USD)</label>
+                                            <input type="number" step="0.01" class="form-control" id="catItemPrice" required placeholder="15.00">
+                                        </div>
+                                        <button type="button" class="btn btn-primary w-100 py-2 shadow-sm" id="btnSaveCatItem"><i class="bi bi-check-circle me-1"></i>Guardar en Catálogo</button>
+                                    </form>
                                 </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Descripción / Detalle</label>
-                                    <input type="text" class="form-control" id="catItemDesc" placeholder="Ej: Incluye bebidas / Duración 45 min...">
+                                <div class="tab-pane fade" id="tab-csv">
+                                    <div class="card border-0 bg-light p-3 mb-3 rounded-3">
+                                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                                            <div>
+                                                <h6 class="fw-bold mb-1 text-dark"><i class="bi bi-download text-success me-1"></i>Paso 1: Descarga la plantilla CSV</h6>
+                                                <p class="small text-muted mb-0">Editable en Excel / Bloc de notas (Headers: <code>nombre, descripcion, precio_usd</code>)</p>
+                                            </div>
+                                            <button type="button" class="btn btn-sm btn-outline-success fw-bold" id="btnDownloadTemplateCsv"><i class="bi bi-file-earmark-arrow-down me-1"></i>Descargar Plantilla</button>
+                                        </div>
+                                        <hr class="my-2">
+                                        <div>
+                                            <h6 class="fw-bold mb-1 text-dark"><i class="bi bi-upload text-primary me-1"></i>Paso 2: Selecciona tu archivo CSV editado</h6>
+                                            <input type="file" class="form-control form-control-sm mt-1" id="catCsvFileInput" accept=".csv,text/csv">
+                                        </div>
+                                    </div>
+                                    <div id="csvPreviewSection" style="display: none;">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-eye me-1 text-primary"></i>Previsualización en Vivo</h6>
+                                            <span id="csvParsedCountBadge" class="badge bg-primary">0 ítems</span>
+                                        </div>
+                                        <div class="table-responsive border rounded custom-scroll" style="max-height: 200px; overflow-y: auto;">
+                                            <table class="table table-sm table-hover align-middle mb-0 small">
+                                                <thead class="table-light sticky-top">
+                                                    <tr>
+                                                        <th>#</th>
+                                                        <th>Nombre</th>
+                                                        <th>Descripción</th>
+                                                        <th>Precio ($USD)</th>
+                                                        <th>Estado</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="csvPreviewTbody"></tbody>
+                                            </table>
+                                        </div>
+                                        <button type="button" class="btn btn-success w-100 py-2 shadow-sm mt-3" id="btnUploadBulkCsv" disabled><i class="bi bi-cloud-arrow-up-fill me-1"></i>Confirmar y Subir Masivamente</button>
+                                    </div>
                                 </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Precio ($USD)</label>
-                                    <input type="number" step="0.01" class="form-control" id="catItemPrice" required placeholder="15.00">
-                                </div>
-                            </form>
+                            </div>
                         `,
-                        footerHtml: `
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                            <button type="button" class="btn btn-primary" id="btnSaveCatItem">Guardar en Catálogo</button>
-                        `
+                        footerHtml: `<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>`
                     });
 
-                    document.getElementById('btnSaveCatItem').onclick = async () => {
-                        const name = document.getElementById('catItemName').value;
-                        const description = document.getElementById('catItemDesc').value;
-                        const priceUsd = document.getElementById('catItemPrice').value;
+                    // Save single item
+                    const btnSaveSingle = document.getElementById('btnSaveCatItem');
+                    if (btnSaveSingle) {
+                        btnSaveSingle.onclick = async () => {
+                            const name = document.getElementById('catItemName').value;
+                            const description = document.getElementById('catItemDesc').value;
+                            const priceUsd = document.getElementById('catItemPrice').value;
 
-                        if (!name || priceUsd === undefined || priceUsd === '') {
-                            UI.showToast('Nombre y precio son requeridos.', 'warning');
-                            return;
-                        }
+                            if (!name || priceUsd === undefined || priceUsd === '') {
+                                UI.showToast('Nombre y precio son requeridos.', 'warning');
+                                return;
+                            }
 
-                        try {
-                            await API.post('/catalog', { name, description, priceUsd, departmentType: serviceType });
-                            UI.showToast('Ítem agregado exitosamente al catálogo.', 'success');
-                            bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
-                            this.renderServicioPOS(container, serviceType, title, subtitle, iconClass);
-                        } catch (e) {
-                            UI.showToast(e.message, 'danger');
-                        }
-                    };
+                            try {
+                                await API.post('/catalog', { name, description, priceUsd, departmentType: serviceType });
+                                UI.showToast('Ítem agregado exitosamente al catálogo.', 'success');
+                                bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
+                                this.renderServicioPOS(container, serviceType, title, subtitle, iconClass);
+                            } catch (e) {
+                                UI.showToast(e.message, 'danger');
+                            }
+                        };
+                    }
+
+                    // CSV template download
+                    const btnDlCsv = document.getElementById('btnDownloadTemplateCsv');
+                    if (btnDlCsv) {
+                        btnDlCsv.onclick = () => {
+                            const sampleCsv = `nombre,descripcion,precio_usd\n"Ejemplo Producto 1","Descripción detallada del producto",12.50\n"Ejemplo Servicio 2","Servicio ofrecido por el hotel",25.00\n`;
+                            CSVUtil.downloadTemplate(`plantilla_catalogo_${serviceType.toLowerCase()}.csv`, sampleCsv);
+                        };
+                    }
+
+                    // CSV file parsing & live preview
+                    const csvInput = document.getElementById('catCsvFileInput');
+                    const previewSec = document.getElementById('csvPreviewSection');
+                    const tbody = document.getElementById('csvPreviewTbody');
+                    const countBadge = document.getElementById('csvParsedCountBadge');
+                    const btnUploadBulk = document.getElementById('btnUploadBulkCsv');
+
+                    let currentParsedItems = [];
+
+                    if (csvInput) {
+                        csvInput.onchange = (evt) => {
+                            const file = evt.target.files[0];
+                            if (!file) return;
+
+                            const reader = new FileReader();
+                            reader.onload = (e) => {
+                                const text = e.target.result;
+                                const parsed = CSVUtil.parse(text);
+
+                                currentParsedItems = parsed.map(item => ({
+                                    ...item,
+                                    departmentType: serviceType
+                                }));
+
+                                if (currentParsedItems.length === 0) {
+                                    UI.showToast('El archivo CSV está vacío o no tiene el formato correcto.', 'warning');
+                                    previewSec.style.display = 'none';
+                                    if (btnUploadBulk) btnUploadBulk.disabled = true;
+                                    return;
+                                }
+
+                                const validItems = currentParsedItems.filter(x => x.isValid);
+                                if (countBadge) countBadge.textContent = `${validItems.length} de ${currentParsedItems.length} ítems válidos`;
+
+                                if (tbody) {
+                                    tbody.innerHTML = currentParsedItems.map((item, idx) => `
+                                        <tr class="${item.isValid ? '' : 'table-danger'}">
+                                            <td>${idx + 1}</td>
+                                            <td class="fw-bold">${item.name || '<span class="text-danger">Falta nombre</span>'}</td>
+                                            <td class="text-muted small">${item.description || '-'}</td>
+                                            <td class="fw-bold text-primary">$${Number(item.priceUsd || 0).toFixed(2)}</td>
+                                            <td>
+                                                ${item.isValid ? 
+                                                    `<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle me-1"></i>Listo</span>` :
+                                                    `<span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-x-circle me-1"></i>Inválido</span>`
+                                                }
+                                            </td>
+                                        </tr>
+                                    `).join('');
+                                }
+
+                                if (previewSec) previewSec.style.display = 'block';
+                                if (btnUploadBulk) btnUploadBulk.disabled = validItems.length === 0;
+                            };
+                            reader.readAsText(file);
+                        };
+                    }
+
+                    // Bulk CSV upload handler
+                    if (btnUploadBulk) {
+                        btnUploadBulk.onclick = async () => {
+                            const validItems = currentParsedItems.filter(x => x.isValid);
+                            if (validItems.length === 0) return;
+
+                            try {
+                                btnUploadBulk.disabled = true;
+                                btnUploadBulk.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Subiendo productos...';
+
+                                const res = await API.post('/catalog/bulk', { items: validItems });
+                                UI.showToast(res.message || 'Ítems cargados exitosamente.', 'success');
+
+                                bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
+                                this.renderServicioPOS(container, serviceType, title, subtitle, iconClass);
+                            } catch (err) {
+                                UI.showToast(err.message, 'danger');
+                                btnUploadBulk.disabled = false;
+                                btnUploadBulk.innerHTML = '<i class="bi bi-cloud-arrow-up-fill me-1"></i>Confirmar y Subir Masivamente';
+                            }
+                        };
+                    }
                 };
             }
 

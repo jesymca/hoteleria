@@ -343,6 +343,27 @@ export default async function handler(req, res) {
             return res.status(201).json({ message: `Cargado a habitación: ${desc}`, expenseId });
         }
 
+        if (urlPath.includes('/catalog/bulk') && req.method === 'POST') {
+            const { items } = req.body || {};
+            if (!Array.isArray(items) || items.length === 0) {
+                return res.status(400).json({ error: 'Se requiere una lista de ítems para la carga masiva.' });
+            }
+
+            let insertedCount = 0;
+            for (const item of items) {
+                if (!item.name || !item.departmentType || item.priceUsd === undefined) continue;
+                const itemId = 'cat_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
+                await db.execute({
+                    sql: `INSERT INTO hotel_catalog_items (id, hotel_id, department_type, department_id, name, description, price_usd)
+                          VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                    args: [itemId, hotelId, String(item.departmentType).toUpperCase(), item.departmentId || null, String(item.name).trim(), String(item.description || '').trim(), parseFloat(item.priceUsd) || 0]
+                });
+                insertedCount++;
+            }
+
+            return res.status(201).json({ message: `${insertedCount} ítems cargados exitosamente al catálogo POS.`, count: insertedCount });
+        }
+
         if (req.method === 'GET') {
             const typeFilter = req.query.type;
             let sql = 'SELECT * FROM hotel_catalog_items WHERE hotel_id = ?';

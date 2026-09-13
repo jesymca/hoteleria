@@ -285,9 +285,7 @@ export const Router = {
 
                 <li class="nav-item"><a class="nav-link" href="#consumos"><i class="bi bi-receipt me-1"></i>Consumos</a></li>
                 <li class="nav-item"><a class="nav-link" href="#facturacion"><i class="bi bi-file-earmark-pdf me-1"></i>Facturas</a></li>
-                <li class="nav-item"><a class="nav-link" href="#areas"><i class="bi bi-building-gear me-1"></i>Áreas</a></li>
-                <li class="nav-item"><a class="nav-link" href="#ajustes"><i class="bi bi-gear me-1"></i>Perfil</a></li>
-                <li class="nav-item"><a class="nav-link text-success fw-bold" href="#pagos"><i class="bi bi-credit-card me-1"></i>Suscripción</a></li>
+                <li class="nav-item"><a class="nav-link" href="#areas"><i class="bi bi-building-gear me-1"></i>Áreas & Staff</a></li>
             `;
         }
 
@@ -305,6 +303,11 @@ export const Router = {
                         <li><span class="dropdown-item-text text-muted small">${user.email}</span></li>
                         <li><span class="dropdown-item-text text-muted small fw-bold">Rol: ${user.role}</span></li>
                         <li><hr class="dropdown-divider"></li>
+                        ${!isSuperAdmin ? `
+                            <li><a class="dropdown-item" href="#ajustes"><i class="bi bi-gear me-2 text-primary"></i>Perfil del Hotel</a></li>
+                            <li><a class="dropdown-item" href="#pagos"><i class="bi bi-credit-card me-2 text-success"></i>Suscripción / Membresía</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                        ` : ''}
                         <li><button class="dropdown-item text-danger" id="btnLogout"><i class="bi bi-box-arrow-right me-2"></i>Cerrar Sesión</button></li>
                     </ul>
                 </div>
