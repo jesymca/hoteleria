@@ -88,7 +88,6 @@ export default async function handler(req, res) {
                 args: [nowIso, bookingId, hotelId]
             });
 
-            // Set room status to CLEANING for housekeeping/mucamas
             await db.execute({
                 sql: 'UPDATE rooms SET status = "CLEANING", notes = "Habitación en limpieza tras Check-out de " || ? WHERE id = ? AND hotel_id = ?',
                 args: [booking.guest_name, booking.room_id, hotelId]
@@ -203,7 +202,7 @@ export default async function handler(req, res) {
         }
     }
 
-    // Route: Departments
+    // Route: Departments & Staff Management
     if (urlPath.includes('/departments')) {
         if (req.method === 'GET') {
             const deptsRes = await db.execute({ sql: 'SELECT * FROM hotel_departments WHERE hotel_id = ? ORDER BY name ASC', args: [hotelId] });
@@ -211,14 +210,15 @@ export default async function handler(req, res) {
                 sql: `SELECT u.id, u.name, u.email, u.role, u.phone, u.department_id, d.name as department_name
                       FROM users u
                       LEFT JOIN hotel_departments d ON u.department_id = d.id
-                      WHERE u.role = 'HOTEL_STAFF' AND (d.hotel_id = ? OR u.department_id IS NULL)`,
+                      WHERE u.role = 'HOTEL_STAFF' AND (d.hotel_id = ? OR u.department_id IS NULL)
+                      ORDER BY u.name ASC`,
                 args: [hotelId]
             });
             return res.status(200).json({ departments: deptsRes.rows, staff: staffRes.rows });
         }
 
         if (req.method === 'POST') {
-            const { action, name, type, staffName, staffEmail, staffPassword, departmentId } = req.body || {};
+            const { action, name, type, staffName, staffEmail, staffPassword, staffPhone, departmentId } = req.body || {};
             if (action === 'create_staff') {
                 if (!staffName || !staffEmail || !staffPassword) return res.status(400).json({ error: 'Nombre, correo y contraseña son requeridos.' });
 
@@ -226,7 +226,7 @@ export default async function handler(req, res) {
                 const pwdHash = await bcrypt.hash(staffPassword, 10);
                 await db.execute({
                     sql: 'INSERT INTO users (id, name, email, password_hash, role, phone, department_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                    args: [staffId, staffName, staffEmail, pwdHash, 'HOTEL_STAFF', '', departmentId || null]
+                    args: [staffId, staffName, staffEmail, pwdHash, 'HOTEL_STAFF', staffPhone || '', departmentId || null]
                 });
                 return res.status(201).json({ message: 'Usuario de personal creado.', id: staffId });
             }
@@ -238,6 +238,36 @@ export default async function handler(req, res) {
                 args: [deptId, hotelId, name, type || 'OTHER']
             });
             return res.status(201).json({ message: 'Área activada exitosamente.', id: deptId });
+        }
+
+        if (req.method === 'PUT') {
+            const { action, deptId, name, type, is_active, staffId, staffName, staffEmail, staffPhone, departmentId, newPassword } = req.body || {};
+
+            if (action === 'update_staff') {
+                if (!staffId || !staffName || !staffEmail) return res.status(400).json({ error: 'staffId, nombre y correo son requeridos.' });
+
+                if (newPassword && newPassword.trim().length > 0) {
+                    const pwdHash = await bcrypt.hash(newPassword, 10);
+                    await db.execute({
+                        sql: 'UPDATE users SET name = ?, email = ?, phone = ?, department_id = ?, password_hash = ? WHERE id = ?',
+                        args: [staffName, staffEmail, staffPhone || '', departmentId || null, pwdHash, staffId]
+                    });
+                } else {
+                    await db.execute({
+                        sql: 'UPDATE users SET name = ?, email = ?, phone = ?, department_id = ? WHERE id = ?',
+                        args: [staffName, staffEmail, staffPhone || '', departmentId || null, staffId]
+                    });
+                }
+                return res.status(200).json({ message: 'Usuario de personal actualizado exitosamente.' });
+            }
+
+            // Edit Department
+            if (!deptId || !name) return res.status(400).json({ error: 'deptId y nombre son requeridos.' });
+            await db.execute({
+                sql: 'UPDATE hotel_departments SET name = ?, type = ?, is_active = ? WHERE id = ? AND hotel_id = ?',
+                args: [name, type || 'OTHER', is_active !== undefined ? (is_active ? 1 : 0) : 1, deptId, hotelId]
+            });
+            return res.status(200).json({ message: 'Área/departamento actualizada exitosamente.' });
         }
     }
 
@@ -271,7 +301,6 @@ export default async function handler(req, res) {
                 return res.status(400).json({ error: 'Habitación, Huésped y Fechas son requeridos.' });
             }
 
-            // OVERBOOKING PREVENTION ALGORITHM
             const overlapCheck = await db.execute({
                 sql: `SELECT id FROM bookings
                       WHERE hotel_id = ? AND room_id = ? AND status IN ('RESERVED', 'CHECKED_IN')

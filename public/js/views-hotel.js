@@ -834,78 +834,72 @@ export const ViewsHotel = {
         }
     },
 
-    // 6. ÁREAS INTERNAS Y PERSONAL DEL HOTEL
+    // 6. ÁREAS INTERNAS Y GESTIÓN DE PERSONAL (STAFF)
     async renderAreas(container) {
         container.innerHTML = `<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>`;
 
         try {
             const data = await API.get('/departments');
-            const depts = data.departments || [];
-            const staff = data.staff || [];
+            let depts = data.departments || [];
+            let staff = data.staff || [];
+
+            let deptOptsHtml = depts.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
 
             let html = `
                 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
                     <div>
                         <h2 class="fw-bold mb-1"><i class="bi bi-building-gear text-primary me-2"></i>Áreas Internas & Personal</h2>
-                        <p class="text-muted mb-0">Gestión de departamentos (Restaurante, Bar, Limpieza) y asignación de personal autorizado</p>
+                        <p class="text-muted mb-0">Gestión de departamentos y personal autorizado con búsqueda rápida</p>
                     </div>
                     <div class="d-flex gap-2">
-                        <button class="btn btn-outline-primary" id="btnCreateDept"><i class="bi bi-plus-lg me-1"></i>Activar Nueva Área</button>
-                        <button class="btn btn-primary" id="btnCreateStaff"><i class="bi bi-person-plus-fill me-1"></i>Crear Usuario Personal</button>
+                        <button class="btn btn-outline-primary shadow-sm" id="btnCreateDept"><i class="bi bi-plus-lg me-1"></i>Activar Nueva Área</button>
+                        <button class="btn btn-primary shadow-sm" id="btnCreateStaff"><i class="bi bi-person-plus-fill me-1"></i>Crear Usuario Personal</button>
                     </div>
                 </div>
 
-                <div class="row g-4 mb-4">
-                    <div class="col-md-6">
-                        <div class="card border-0 shadow-sm">
-                            <div class="card-header bg-white fw-bold py-3"><i class="bi bi-diagram-3-fill me-2 text-primary"></i>Áreas / Departamentos Activos</div>
-                            <div class="list-group list-group-flush">
-            `;
-
-            if (depts.length === 0) {
-                html += `<div class="p-3 text-muted">No hay áreas configuradas.</div>`;
-            } else {
-                depts.forEach(d => {
-                    html += `
-                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="mb-0 fw-bold">${d.name}</h6>
-                                <small class="text-muted">Tipo: ${d.type}</small>
+                <div class="row g-4">
+                    <!-- COLUMNA IZQUIERDA: DEPARTAMENTOS -->
+                    <div class="col-lg-5">
+                        <div class="card border-0 shadow-sm rounded-3 h-100">
+                            <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+                                <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-diagram-3-fill me-2 text-primary"></i>Áreas / Departamentos</h5>
+                                <span class="badge bg-primary rounded-pill fs-7" id="deptCountBadge">${depts.length} áreas</span>
                             </div>
-                            <span class="badge bg-success">Activo</span>
-                        </div>
-                    `;
-                });
-            }
-
-            html += `
+                            <div class="card-body pt-0">
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                                    <input type="text" class="form-control bg-light border-start-0" id="searchDeptInput" placeholder="Buscar área por nombre o tipo...">
+                                </div>
+                                <div class="list-group list-group-flush custom-scroll" id="deptListContainer" style="max-height: 520px; overflow-y: auto;">
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="col-md-6">
-                        <div class="card border-0 shadow-sm">
-                            <div class="card-header bg-white fw-bold py-3"><i class="bi bg-people-fill me-2 text-primary"></i>Personal Autorizado (Staff)</div>
-                            <div class="list-group list-group-flush">
-            `;
-
-            if (staff.length === 0) {
-                html += `<div class="p-3 text-muted">No hay usuarios de personal registrados.</div>`;
-            } else {
-                staff.forEach(s => {
-                    html += `
-                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="mb-0 fw-bold">${s.name}</h6>
-                                <small class="text-muted">${s.email} | Área: ${s.department_name || 'Sin área fija'}</small>
+                    <!-- COLUMNA DERECHA: PERSONAL (STAFF) -->
+                    <div class="col-lg-7">
+                        <div class="card border-0 shadow-sm rounded-3 h-100">
+                            <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                <h5 class="fw-bold mb-0 text-dark"><i class="bi bg-people-fill me-2 text-primary"></i>Personal Autorizado (Staff)</h5>
+                                <span class="badge bg-secondary rounded-pill fs-7" id="staffCountBadge">Mostrando ${staff.length} de ${staff.length}</span>
                             </div>
-                            <span class="badge bg-info text-dark">${s.role}</span>
-                        </div>
-                    `;
-                });
-            }
-
-            html += `
+                            <div class="card-body pt-0">
+                                <div class="row g-2 mb-3">
+                                    <div class="col-md-7">
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                                            <input type="text" class="form-control bg-light border-start-0" id="searchStaffInput" placeholder="Buscar por nombre, correo o teléfono...">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-5">
+                                        <select class="form-select bg-light" id="filterStaffDept">
+                                            <option value="">Todas las Áreas</option>
+                                            ${deptOptsHtml}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="list-group list-group-flush custom-scroll" id="staffListContainer" style="max-height: 520px; overflow-y: auto;">
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -913,6 +907,126 @@ export const ViewsHotel = {
             `;
 
             container.innerHTML = html;
+
+            const deptListContainer = container.querySelector('#deptListContainer');
+            const staffListContainer = container.querySelector('#staffListContainer');
+            const searchDeptInput = container.querySelector('#searchDeptInput');
+            const searchStaffInput = container.querySelector('#searchStaffInput');
+            const filterStaffDept = container.querySelector('#filterStaffDept');
+            const deptCountBadge = container.querySelector('#deptCountBadge');
+            const staffCountBadge = container.querySelector('#staffCountBadge');
+
+            // Render Departments List
+            const renderDeptList = (filteredDepts) => {
+                deptCountBadge.textContent = `${filteredDepts.length} área${filteredDepts.length !== 1 ? 's' : ''}`;
+                if (filteredDepts.length === 0) {
+                    deptListContainer.innerHTML = `
+                        <div class="text-center py-4 text-muted">
+                            <i class="bi bi-search fs-2 d-block mb-1"></i>
+                            <small>No se encontraron áreas coincidentes.</small>
+                        </div>
+                    `;
+                    return;
+                }
+
+                deptListContainer.innerHTML = filteredDepts.map(d => `
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-2 py-3 border-bottom">
+                        <div>
+                            <div class="fw-bold text-dark mb-1">${d.name}</div>
+                            <span class="badge bg-light text-dark border me-1">${d.type || 'OTHER'}</span>
+                            <span class="badge ${d.is_active !== 0 ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle'}">${d.is_active !== 0 ? 'Activo' : 'Inactivo'}</span>
+                        </div>
+                        <button class="btn btn-sm btn-outline-secondary btn-edit-dept px-2" data-id="${d.id}" title="Editar área">
+                            <i class="bi bi-pencil-fill me-1"></i>Editar
+                        </button>
+                    </div>
+                `).join('');
+
+                // Bind click events for department edits
+                deptListContainer.querySelectorAll('.btn-edit-dept').forEach(btn => {
+                    btn.onclick = () => {
+                        const dId = btn.dataset.id;
+                        const targetDept = depts.find(x => x.id === dId);
+                        if (targetDept) this.showEditDeptModal(container, targetDept);
+                    };
+                });
+            };
+
+            // Render Staff List
+            const renderStaffList = (filteredStaff) => {
+                staffCountBadge.textContent = `Mostrando ${filteredStaff.length} de ${staff.length}`;
+                if (filteredStaff.length === 0) {
+                    staffListContainer.innerHTML = `
+                        <div class="text-center py-4 text-muted">
+                            <i class="bi bi-person-x fs-2 d-block mb-1"></i>
+                            <small>No se encontró personal con los filtros aplicados.</small>
+                        </div>
+                    `;
+                    return;
+                }
+
+                staffListContainer.innerHTML = filteredStaff.map(s => `
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-2 py-3 border-bottom">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="avatar-circle bg-primary-subtle text-primary fw-bold rounded-circle d-flex align-items-center justify-content-center" style="width: 42px; height: 42px; font-size: 1.1rem;">
+                                ${(s.name || 'U').charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                                <div class="fw-bold text-dark mb-0">${s.name}</div>
+                                <div class="small text-muted mb-1">
+                                    <i class="bi bi-envelope me-1"></i>${s.email}
+                                    ${s.phone ? `<span class="ms-2"><i class="bi bi-whatsapp me-1 text-success"></i>${s.phone}</span>` : ''}
+                                </div>
+                                <span class="badge bg-info text-dark">${s.department_name || 'Sin área fija (General)'}</span>
+                            </div>
+                        </div>
+                        <button class="btn btn-sm btn-outline-primary btn-edit-staff px-2" data-id="${s.id}" title="Editar usuario staff">
+                            <i class="bi bi-pencil-fill me-1"></i>Editar
+                        </button>
+                    </div>
+                `).join('');
+
+                // Bind click events for staff edits
+                staffListContainer.querySelectorAll('.btn-edit-staff').forEach(btn => {
+                    btn.onclick = () => {
+                        const sId = btn.dataset.id;
+                        const targetStaff = staff.find(x => x.id === sId);
+                        if (targetStaff) this.showEditStaffModal(container, targetStaff, depts);
+                    };
+                });
+            };
+
+            // Filter logic
+            const filterDepts = () => {
+                const term = searchDeptInput.value.toLowerCase().trim();
+                const filtered = depts.filter(d => 
+                    d.name.toLowerCase().includes(term) || (d.type && d.type.toLowerCase().includes(term))
+                );
+                renderDeptList(filtered);
+            };
+
+            const filterStaff = () => {
+                const term = searchStaffInput.value.toLowerCase().trim();
+                const selectedDeptId = filterStaffDept.value;
+
+                const filtered = staff.filter(s => {
+                    const matchesTerm = s.name.toLowerCase().includes(term) || 
+                                        s.email.toLowerCase().includes(term) || 
+                                        (s.phone && s.phone.includes(term)) ||
+                                        (s.department_name && s.department_name.toLowerCase().includes(term));
+                    const matchesDept = !selectedDeptId || s.department_id === selectedDeptId;
+                    return matchesTerm && matchesDept;
+                });
+                renderStaffList(filtered);
+            };
+
+            searchDeptInput.oninput = filterDepts;
+            searchStaffInput.oninput = filterStaff;
+            filterStaffDept.onchange = filterStaff;
+
+            // Initial render
+            renderDeptList(depts);
+            renderStaffList(staff);
 
             // Modal Create Dept
             container.querySelector('#btnCreateDept').onclick = () => {
@@ -946,7 +1060,10 @@ export const ViewsHotel = {
                 document.getElementById('btnSaveDept').onclick = async () => {
                     const name = document.getElementById('deptName').value;
                     const type = document.getElementById('deptType').value;
-                    if (!name) return;
+                    if (!name) {
+                        UI.showToast('Ingrese el nombre del área.', 'warning');
+                        return;
+                    }
 
                     try {
                         await API.post('/departments', { name, type });
@@ -974,9 +1091,15 @@ export const ViewsHotel = {
                                 <label class="form-label">Correo Electrónico (Para Login)</label>
                                 <input type="email" class="form-control" id="stEmail" placeholder="mucama@posada.com" required>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label">Contraseña</label>
-                                <input type="password" class="form-control" id="stPassword" required>
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                    <label class="form-label">Teléfono / WhatsApp</label>
+                                    <input type="text" class="form-control" id="stPhone" placeholder="0414-1234567">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label">Contraseña</label>
+                                    <input type="password" class="form-control" id="stPassword" required>
+                                </div>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Área / Departamento Asignado</label>
@@ -996,6 +1119,7 @@ export const ViewsHotel = {
                 document.getElementById('btnSaveStaff').onclick = async () => {
                     const staffName = document.getElementById('stName').value;
                     const staffEmail = document.getElementById('stEmail').value;
+                    const staffPhone = document.getElementById('stPhone').value;
                     const staffPassword = document.getElementById('stPassword').value;
                     const departmentId = document.getElementById('stDept').value;
 
@@ -1009,6 +1133,7 @@ export const ViewsHotel = {
                             action: 'create_staff',
                             staffName,
                             staffEmail,
+                            staffPhone,
                             staffPassword,
                             departmentId
                         });
@@ -1023,6 +1148,128 @@ export const ViewsHotel = {
         } catch (err) {
             container.innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
         }
+    },
+
+    showEditDeptModal(container, dept) {
+        UI.showModal({
+            title: `Editar Área: ${dept.name}`,
+            bodyHtml: `
+                <form id="formEditDept">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre del Área</label>
+                        <input type="text" class="form-control" id="deptEditName" value="${dept.name}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tipo de Departamento</label>
+                        <select class="form-select" id="deptEditType">
+                            <option value="RESTAURANT" ${dept.type === 'RESTAURANT' ? 'selected' : ''}>Restaurante / Comedor</option>
+                            <option value="BAR" ${dept.type === 'BAR' ? 'selected' : ''}>Bar / Coctelería</option>
+                            <option value="HOUSEKEEPING" ${dept.type === 'HOUSEKEEPING' ? 'selected' : ''}>Limpieza / Mucamas</option>
+                            <option value="SPA" ${dept.type === 'SPA' ? 'selected' : ''}>Spa / Peluquería</option>
+                            <option value="EXCURSION" ${dept.type === 'EXCURSION' ? 'selected' : ''}>Excursiones / Turismo</option>
+                            <option value="OTHER" ${dept.type === 'OTHER' ? 'selected' : ''}>Otro Servicio Especial</option>
+                        </select>
+                    </div>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="deptEditStatus" ${dept.is_active !== 0 ? 'checked' : ''}>
+                        <label class="form-check-label fw-bold" for="deptEditStatus">Área Activa en el Sistema</label>
+                    </div>
+                </form>
+            `,
+            footerHtml: `
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnUpdateDept">Guardar Cambios</button>
+            `
+        });
+
+        document.getElementById('btnUpdateDept').onclick = async () => {
+            const name = document.getElementById('deptEditName').value;
+            const type = document.getElementById('deptEditType').value;
+            const is_active = document.getElementById('deptEditStatus').checked;
+
+            if (!name) {
+                UI.showToast('El nombre del área es requerido.', 'warning');
+                return;
+            }
+
+            try {
+                await API.put('/departments', { deptId: dept.id, name, type, is_active });
+                UI.showToast('Área actualizada exitosamente.', 'success');
+                bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
+                this.renderAreas(container);
+            } catch (e) {
+                UI.showToast(e.message, 'danger');
+            }
+        };
+    },
+
+    showEditStaffModal(container, staffMember, depts) {
+        let deptOptions = depts.map(d => `<option value="${d.id}" ${d.id === staffMember.department_id ? 'selected' : ''}>${d.name}</option>`).join('');
+
+        UI.showModal({
+            title: `Editar Personal: ${staffMember.name}`,
+            bodyHtml: `
+                <form id="formEditStaff">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre Completo</label>
+                        <input type="text" class="form-control" id="stEditName" value="${staffMember.name || ''}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Correo Electrónico (Login)</label>
+                        <input type="email" class="form-control" id="stEditEmail" value="${staffMember.email || ''}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Teléfono / WhatsApp</label>
+                        <input type="text" class="form-control" id="stEditPhone" value="${staffMember.phone || ''}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Área / Departamento Asignado</label>
+                        <select class="form-select" id="stEditDept">
+                            <option value="">Recepción / General</option>
+                            ${deptOptions}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nueva Contraseña (Opcional)</label>
+                        <input type="password" class="form-control" id="stEditPassword" placeholder="Dejar en blanco para mantener la contraseña actual">
+                    </div>
+                </form>
+            `,
+            footerHtml: `
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnUpdateStaff">Guardar Cambios</button>
+            `
+        });
+
+        document.getElementById('btnUpdateStaff').onclick = async () => {
+            const staffName = document.getElementById('stEditName').value;
+            const staffEmail = document.getElementById('stEditEmail').value;
+            const staffPhone = document.getElementById('stEditPhone').value;
+            const departmentId = document.getElementById('stEditDept').value;
+            const newPassword = document.getElementById('stEditPassword').value;
+
+            if (!staffName || !staffEmail) {
+                UI.showToast('Nombre y correo son requeridos.', 'warning');
+                return;
+            }
+
+            try {
+                await API.put('/departments', {
+                    action: 'update_staff',
+                    staffId: staffMember.id,
+                    staffName,
+                    staffEmail,
+                    staffPhone,
+                    departmentId,
+                    newPassword
+                });
+                UI.showToast('Usuario de personal actualizado exitosamente.', 'success');
+                bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
+                this.renderAreas(container);
+            } catch (e) {
+                UI.showToast(e.message, 'danger');
+            }
+        };
     },
 
     // 7. CONFIGURACIÓN DEL PERFIL Y MARCA DEL HOTEL

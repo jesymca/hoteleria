@@ -7,12 +7,15 @@ export default async function handler(req, res) {
     await initDB();
     const urlPath = req.url || '';
 
-    // Route: Banks Catalog
+    // Route: Banks Catalog (Public / Authenticated GET)
     if (urlPath.includes('/admin/banks')) {
         if (req.method === 'GET') {
             const bRes = await db.execute('SELECT * FROM banks ORDER BY name ASC');
             return res.status(200).json(bRes.rows);
         }
+        const auth = requireAuth(req, res, ['SUPERADMIN']);
+        if (!auth) return;
+
         if (req.method === 'POST') {
             const { code, name } = req.body || {};
             if (!code || !name) return res.status(400).json({ error: 'Código y nombre son requeridos.' });
@@ -21,7 +24,7 @@ export default async function handler(req, res) {
         }
     }
 
-    // Route: Payment Methods
+    // Route: Payment Methods (GET for all auth users, CUD for SuperAdmin)
     if (urlPath.includes('/admin/payment-methods')) {
         if (req.method === 'GET') {
             const pmRes = await db.execute('SELECT * FROM saas_payment_methods WHERE is_active = 1 ORDER BY name ASC');
@@ -44,6 +47,38 @@ export default async function handler(req, res) {
             const pmId = req.query.id;
             await db.execute({ sql: 'UPDATE saas_payment_methods SET is_active = 0 WHERE id = ?', args: [pmId] });
             return res.status(200).json({ message: 'Método desactivado.' });
+        }
+    }
+
+    // Route: Settings (GET for all auth users, PUT for SuperAdmin)
+    if (urlPath.includes('/admin/settings')) {
+        const auth = requireAuth(req, res);
+        if (!auth) return;
+
+        if (req.method === 'GET') {
+            const sRes = await db.execute('SELECT * FROM saas_settings');
+            const settings = {};
+            for (const row of sRes.rows) settings[row.key] = row.value;
+            return res.status(200).json(settings);
+        }
+
+        if (req.method === 'PUT') {
+            if (auth.role !== 'SUPERADMIN') return res.status(403).json({ error: 'Solo el SuperAdmin puede modificar la configuración.' });
+
+            const { monthlyFeeUsd, trialDays } = req.body || {};
+            if (monthlyFeeUsd !== undefined) {
+                await db.execute({
+                    sql: 'INSERT INTO saas_settings (key, value) VALUES ("monthly_fee_usd", ?) ON CONFLICT(key) DO UPDATE SET value = ?',
+                    args: [String(monthlyFeeUsd), String(monthlyFeeUsd)]
+                });
+            }
+            if (trialDays !== undefined) {
+                await db.execute({
+                    sql: 'INSERT INTO saas_settings (key, value) VALUES ("trial_days", ?) ON CONFLICT(key) DO UPDATE SET value = ?',
+                    args: [String(trialDays), String(trialDays)]
+                });
+            }
+            return res.status(200).json({ message: 'Configuración SaaS actualizada.' });
         }
     }
 
@@ -111,7 +146,7 @@ export default async function handler(req, res) {
         }
     }
 
-    // Require SuperAdmin for remaining admin routes
+    // Require SuperAdmin for remaining admin routes (Health Monitor & Global Hotels List)
     const auth = requireAuth(req, res, ['SUPERADMIN']);
     if (!auth) return;
 
@@ -158,33 +193,6 @@ export default async function handler(req, res) {
         }
 
         return res.status(200).json(healthResults);
-    }
-
-    // Route: Settings
-    if (urlPath.includes('/admin/settings')) {
-        if (req.method === 'GET') {
-            const sRes = await db.execute('SELECT * FROM saas_settings');
-            const settings = {};
-            for (const row of sRes.rows) settings[row.key] = row.value;
-            return res.status(200).json(settings);
-        }
-
-        if (req.method === 'PUT') {
-            const { monthlyFeeUsd, trialDays } = req.body || {};
-            if (monthlyFeeUsd !== undefined) {
-                await db.execute({
-                    sql: 'INSERT INTO saas_settings (key, value) VALUES ("monthly_fee_usd", ?) ON CONFLICT(key) DO UPDATE SET value = ?',
-                    args: [String(monthlyFeeUsd), String(monthlyFeeUsd)]
-                });
-            }
-            if (trialDays !== undefined) {
-                await db.execute({
-                    sql: 'INSERT INTO saas_settings (key, value) VALUES ("trial_days", ?) ON CONFLICT(key) DO UPDATE SET value = ?',
-                    args: [String(trialDays), String(trialDays)]
-                });
-            }
-            return res.status(200).json({ message: 'Configuración SaaS actualizada.' });
-        }
     }
 
     // Route: Admin Hotels (Default)
