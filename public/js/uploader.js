@@ -1,4 +1,4 @@
-// Uploader module using HTML5 Canvas Compression and Cloudflare R2 Presigned URLs
+// Uploader module with Canvas Compression, Direct Cloudflare R2 Presigned PUT, and Serverless Fallback
 import { API } from './api.js';
 
 export const Uploader = {
@@ -48,25 +48,42 @@ export const Uploader = {
         // 1. Compress Client Side via Canvas
         const compressed = await this.compressImage(file);
 
-        // 2. Request Presigned URL from Backend API
-        const presignedData = await API.post('/storage/presigned-url', {
-            mimeType: compressed.mimeType,
-            destinationPath
-        });
+        try {
+            // 2. Request Presigned URL from Backend API
+            const presignedData = await API.post('/storage/presigned-url', {
+                mimeType: compressed.mimeType,
+                destinationPath
+            });
 
-        // 3. Directly PUT blob to Cloudflare R2
-        const uploadResponse = await fetch(presignedData.presignedUrl, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': compressed.mimeType
-            },
-            body: compressed.blob
-        });
+            // 3. Try Direct PUT to Cloudflare R2
+            const uploadResponse = await fetch(presignedData.presignedUrl, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': compressed.mimeType
+                },
+                body: compressed.blob
+            });
 
-        if (!uploadResponse.ok) {
-            throw new Error('Fallo la subida directa a Cloudflare R2.');
+            if (uploadResponse.ok) {
+                return presignedData.publicUrl;
+            }
+        } catch (r2Error) {
+            console.warn('Direct R2 PUT failed or CORS blocked. Utilizing serverless fallback upload...', r2Error);
         }
 
-        return presignedData.publicUrl;
+        // 4. Fallback: Server-side R2 upload / DataURL fallback
+        const base64String = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(compressed.blob);
+        });
+
+        const fallbackRes = await API.post('/storage/fallback-upload', {
+            destinationPath,
+            base64Data: base64String,
+            mimeType: compressed.mimeType
+        });
+
+        return fallbackRes.publicUrl;
     }
 };
