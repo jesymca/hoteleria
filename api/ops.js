@@ -580,7 +580,7 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-        const { action, roomNumber, roomTypeId, notes, typeName, basePriceUsd, capacity } = req.body || {};
+        const { action, roomNumber, roomTypeId, notes, typeName, basePriceUsd, capacity, status } = req.body || {};
         if (action === 'create_type') {
             if (!typeName || !basePriceUsd) return res.status(400).json({ error: 'Nombre y precio base son requeridos.' });
             const typeId = 'rt_' + Date.now();
@@ -601,13 +601,23 @@ export default async function handler(req, res) {
         const roomId = 'rm_' + Date.now();
         await db.execute({
             sql: 'INSERT INTO rooms (id, hotel_id, room_type_id, room_number, status, notes) VALUES (?, ?, ?, ?, ?, ?)',
-            args: [roomId, hotelId, roomTypeId, roomNumber, 'AVAILABLE', notes || '']
+            args: [roomId, hotelId, roomTypeId, roomNumber, status || 'AVAILABLE', notes || '']
         });
         return res.status(201).json({ message: 'Habitación creada.', id: roomId });
     }
 
     if (req.method === 'PUT') {
-        const { roomId, roomNumber, roomTypeId, notes, status } = req.body || {};
+        const { action, typeId, typeName, basePriceUsd, capacity, roomId, roomNumber, roomTypeId, notes, status } = req.body || {};
+        
+        if (action === 'update_type' || typeId) {
+            if (!typeId || !typeName || basePriceUsd === undefined) return res.status(400).json({ error: 'ID, nombre y precio del tipo de habitación son requeridos.' });
+            await db.execute({
+                sql: 'UPDATE room_types SET name = ?, base_price_usd = ?, capacity = ? WHERE id = ? AND hotel_id = ?',
+                args: [typeName, parseFloat(basePriceUsd), parseInt(capacity || 2), typeId, hotelId]
+            });
+            return res.status(200).json({ message: 'Tipo de habitación actualizado.' });
+        }
+
         if (!roomId) return res.status(400).json({ error: 'ID de habitación requerido.' });
 
         await db.execute({
@@ -623,6 +633,19 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'DELETE') {
+        const typeId = req.query.typeId;
+        if (typeId) {
+            const inUse = await db.execute({
+                sql: 'SELECT id FROM rooms WHERE room_type_id = ? AND hotel_id = ? LIMIT 1',
+                args: [typeId, hotelId]
+            });
+            if (inUse.rows.length > 0) {
+                return res.status(400).json({ error: 'No se puede eliminar este tipo porque hay habitaciones asignadas a él. Reasigne o elimine las habitaciones primero.' });
+            }
+            await db.execute({ sql: 'DELETE FROM room_types WHERE id = ? AND hotel_id = ?', args: [typeId, hotelId] });
+            return res.status(200).json({ message: 'Tipo de habitación eliminado.' });
+        }
+
         const roomId = req.query.id;
         if (!roomId) return res.status(400).json({ error: 'ID de habitación requerido.' });
         await db.execute({ sql: 'DELETE FROM rooms WHERE id = ? AND hotel_id = ?', args: [roomId, hotelId] });

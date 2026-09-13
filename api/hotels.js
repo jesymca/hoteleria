@@ -31,7 +31,7 @@ export default async function handler(req, res) {
 
     if (req.method === 'PUT') {
         try {
-            const { name, rif, phone, address, logo_url, primary_color, dark_mode, social_links } = req.body || {};
+            const { name, rif, phone, address, logo_url, primary_color, dark_mode, social_links, check_in_time, check_out_time } = req.body || {};
 
             // Ensure no undefined values are passed to libSQL args
             const safeName = name ?? null;
@@ -42,6 +42,8 @@ export default async function handler(req, res) {
             const safeColor = primary_color ?? null;
             const safeDarkMode = dark_mode !== undefined ? (dark_mode ? 1 : 0) : null;
             const safeSocial = social_links ?? null;
+            const safeCheckIn = check_in_time ?? null;
+            const safeCheckOut = check_out_time ?? null;
 
             await db.execute({
                 sql: `UPDATE hotels 
@@ -52,9 +54,11 @@ export default async function handler(req, res) {
                     logo_url = COALESCE(?, logo_url),
                     primary_color = COALESCE(?, primary_color),
                     dark_mode = COALESCE(?, dark_mode),
-                    social_links = COALESCE(?, social_links)
+                    social_links = COALESCE(?, social_links),
+                    check_in_time = COALESCE(?, check_in_time),
+                    check_out_time = COALESCE(?, check_out_time)
                 WHERE id = ?`,
-                args: [safeName, safeRif, safePhone, safeAddress, safeLogoUrl, safeColor, safeDarkMode, safeSocial, hotelId]
+                args: [safeName, safeRif, safePhone, safeAddress, safeLogoUrl, safeColor, safeDarkMode, safeSocial, safeCheckIn, safeCheckOut, hotelId]
             });
 
             const updated = await db.execute({

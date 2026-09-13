@@ -250,108 +250,406 @@ export const ViewsHotel = {
             };
         });
 
-        // Create Room Type
+        // Create Room Type & Management Modal
         const btnCreateType = container.querySelector('#btnCreateRoomType');
         if (btnCreateType) {
             btnCreateType.onclick = () => {
-                UI.showModal({
-                    title: 'Crear Nuevo Tipo/Estilo de Habitación',
-                    bodyHtml: `
-                        <form id="formRoomType">
-                            <div class="mb-3">
-                                <label class="form-label">Nombre del Estilo/Tipo (Libre)</label>
-                                <input type="text" class="form-control" id="rtName" placeholder="Ej: Suite VIP Vista al Mar, Cabaña Marina, Matrimonial Deluxe" required>
+                const renderRoomTypeModal = () => {
+                    UI.showModal({
+                        title: 'Gestión & Creación de Estilos / Tipos de Habitación',
+                        bodyHtml: `
+                            <div class="card border-0 bg-light p-3 mb-4 rounded-3">
+                                <h6 class="fw-bold text-primary mb-2"><i class="bi bi-plus-circle-fill me-1"></i>Crear Nuevo Estilo / Tipo</h6>
+                                <form id="formRoomType">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Nombre del Estilo / Tipo (Libre)</label>
+                                        <input type="text" class="form-control" id="rtName" placeholder="Ej: Suite VIP Vista al Mar, Cabaña Marina, Matrimonial Deluxe" required>
+                                    </div>
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-6">
+                                            <label class="form-label fw-semibold">Precio Base por Noche ($USD)</label>
+                                            <input type="number" step="0.01" class="form-control" id="rtPrice" placeholder="50.00" required>
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label fw-semibold">Capacidad de Huéspedes</label>
+                                            <input type="number" class="form-control" id="rtCap" value="2" min="1" required>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn btn-primary w-100 fw-bold shadow-sm" id="btnSaveRoomType">
+                                        <i class="bi bi-check-circle me-1"></i>Guardar Nuevo Estilo
+                                    </button>
+                                </form>
                             </div>
-                            <div class="row">
-                                <div class="col-6 mb-3">
-                                    <label class="form-label">Precio Base por Noche ($USD)</label>
-                                    <input type="number" step="0.01" class="form-control" id="rtPrice" placeholder="50.00" required>
-                                </div>
-                                <div class="col-6 mb-3">
-                                    <label class="form-label">Capacidad de Huéspedes</label>
-                                    <input type="number" class="form-control" id="rtCap" value="2" required>
-                                </div>
+
+                            <div>
+                                <h6 class="fw-bold text-dark mb-2"><i class="bi bi-tags-fill me-1 text-primary"></i>Estilos Registrados (${types.length})</h6>
+                                ${types.length === 0 ? `
+                                    <p class="text-muted small text-center py-3">No hay estilos registrados aún.</p>
+                                ` : `
+                                    <div class="table-responsive border rounded custom-scroll" style="max-height: 220px; overflow-y: auto;">
+                                        <table class="table table-sm table-hover align-middle mb-0 small">
+                                            <thead class="table-light sticky-top">
+                                                <tr>
+                                                    <th>Estilo / Tipo</th>
+                                                    <th>Precio Base ($USD)</th>
+                                                    <th>Capacidad</th>
+                                                    <th class="text-end">Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                ${types.map(t => `
+                                                    <tr>
+                                                        <td class="fw-bold text-dark">${t.name}</td>
+                                                        <td class="fw-bold text-primary">$${Number(t.base_price_usd).toFixed(2)} USD</td>
+                                                        <td><span class="badge bg-secondary-subtle text-secondary border"><i class="bi bi-people me-1"></i>${t.capacity} pers.</span></td>
+                                                        <td class="text-end">
+                                                            <button type="button" class="btn btn-sm btn-outline-primary me-1 btn-edit-room-type" data-id="${t.id}" title="Editar estilo">
+                                                                <i class="bi bi-pencil-fill"></i>
+                                                            </button>
+                                                            <button type="button" class="btn btn-sm btn-outline-danger btn-delete-room-type" data-id="${t.id}" title="Eliminar estilo">
+                                                                <i class="bi bi-trash-fill"></i>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                `).join('')}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                `}
                             </div>
-                        </form>
-                    `,
-                    footerHtml: `
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="button" class="btn btn-primary" id="btnSaveRoomType">Guardar Estilo</button>
-                    `
-                });
+                        `,
+                        footerHtml: `<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>`
+                    });
 
-                document.getElementById('btnSaveRoomType').onclick = async () => {
-                    const typeName = document.getElementById('rtName').value;
-                    const basePriceUsd = document.getElementById('rtPrice').value;
-                    const capacity = document.getElementById('rtCap').value;
+                    // Save new room type
+                    const btnSaveType = document.getElementById('btnSaveRoomType');
+                    if (btnSaveType) {
+                        btnSaveType.onclick = async () => {
+                            const typeName = document.getElementById('rtName').value;
+                            const basePriceUsd = document.getElementById('rtPrice').value;
+                            const capacity = document.getElementById('rtCap').value;
 
-                    if (!typeName || !basePriceUsd) {
-                        UI.showToast('Debe ingresar nombre y precio base.', 'warning');
-                        return;
+                            if (!typeName || !basePriceUsd) {
+                                UI.showToast('Debe ingresar nombre y precio base.', 'warning');
+                                return;
+                            }
+
+                            try {
+                                await API.post('/rooms', { action: 'create_type', typeName, basePriceUsd, capacity });
+                                UI.showToast('Tipo de habitación creado exitosamente.', 'success');
+                                bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
+                                this.renderRack(container);
+                            } catch (e) {
+                                UI.showToast(e.message, 'danger');
+                            }
+                        };
                     }
 
-                    try {
-                        await API.post('/rooms', { action: 'create_type', typeName, basePriceUsd, capacity });
-                        UI.showToast('Tipo de habitación creado exitosamente.', 'success');
-                        bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
-                        this.renderRack(container);
-                    } catch (e) {
-                        UI.showToast(e.message, 'danger');
-                    }
+                    // Edit Room Type Submodal
+                    const modalEl = document.getElementById('dynamicModal');
+                    modalEl.querySelectorAll('.btn-edit-room-type').forEach(btn => {
+                        btn.onclick = () => {
+                            const typeId = btn.dataset.id;
+                            const targetType = types.find(t => t.id === typeId);
+                            if (!targetType) return;
+
+                            UI.showModal({
+                                title: `Editar Estilo: ${targetType.name}`,
+                                bodyHtml: `
+                                    <form id="formEditRoomType">
+                                        <div class="mb-3">
+                                            <label class="form-label fw-semibold">Nombre del Estilo / Tipo</label>
+                                            <input type="text" class="form-control" id="editRtName" value="${targetType.name}" required>
+                                        </div>
+                                        <div class="row g-2 mb-3">
+                                            <div class="col-6">
+                                                <label class="form-label fw-semibold">Precio Base ($USD)</label>
+                                                <input type="number" step="0.01" class="form-control" id="editRtPrice" value="${targetType.base_price_usd}" required>
+                                            </div>
+                                            <div class="col-6">
+                                                <label class="form-label fw-semibold">Capacidad</label>
+                                                <input type="number" class="form-control" id="editRtCap" value="${targetType.capacity}" min="1" required>
+                                            </div>
+                                        </div>
+                                    </form>
+                                `,
+                                footerHtml: `
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                    <button type="button" class="btn btn-primary" id="btnUpdateRoomType">Guardar Cambios</button>
+                                `
+                            });
+
+                            document.getElementById('btnUpdateRoomType').onclick = async () => {
+                                const typeName = document.getElementById('editRtName').value;
+                                const basePriceUsd = document.getElementById('editRtPrice').value;
+                                const capacity = document.getElementById('editRtCap').value;
+
+                                try {
+                                    await API.put('/rooms', { action: 'update_type', typeId: targetType.id, typeName, basePriceUsd, capacity });
+                                    UI.showToast('Estilo actualizado correctamente.', 'success');
+                                    bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
+                                    this.renderRack(container);
+                                } catch (err) {
+                                    UI.showToast(err.message, 'danger');
+                                }
+                            };
+                        };
+                    });
+
+                    // Delete Room Type Handler
+                    modalEl.querySelectorAll('.btn-delete-room-type').forEach(btn => {
+                        btn.onclick = async () => {
+                            const typeId = btn.dataset.id;
+                            try {
+                                await API.delete('/rooms?typeId=' + typeId);
+                                UI.showToast('Estilo eliminado.', 'info');
+                                bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
+                                this.renderRack(container);
+                            } catch (err) {
+                                UI.showToast(err.message, 'danger');
+                            }
+                        };
+                    });
                 };
+
+                renderRoomTypeModal();
             };
         }
 
-        // Create Room
+        // Create Room & Management Modal
         const btnCreateRoom = container.querySelector('#btnCreateRoom');
         if (btnCreateRoom) {
             btnCreateRoom.onclick = () => {
                 let typeOptions = types.map(t => `<option value="${t.id}">${t.name} ($${t.base_price_usd}/noche)</option>`).join('');
-                UI.showModal({
-                    title: 'Agregar Nueva Habitación al Rack',
-                    bodyHtml: `
-                        <form id="formRoom">
-                            <div class="mb-3">
-                                <label class="form-label">Número de Habitación / Identificador</label>
-                                <input type="text" class="form-control" id="rmNumber" placeholder="Ej: 101, 202-B, Cabaña 3" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Tipo / Estilo</label>
-                                <select class="form-select" id="rmType" required>
-                                    ${typeOptions}
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Observaciones / Detalles</label>
-                                <textarea class="form-control" id="rmNotes" rows="2" placeholder="Ej: Vista a la piscina, cama King"></textarea>
-                            </div>
-                        </form>
-                    `,
-                    footerHtml: `
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="button" class="btn btn-primary" id="btnSaveRoom">Guardar Habitación</button>
-                    `
-                });
 
-                document.getElementById('btnSaveRoom').onclick = async () => {
-                    const roomNumber = document.getElementById('rmNumber').value;
-                    const roomTypeId = document.getElementById('rmType').value;
-                    const notes = document.getElementById('rmNotes').value;
+                const renderRoomManageModal = () => {
+                    UI.showModal({
+                        title: 'Gestión & Agregar Nueva Habitación al Rack',
+                        bodyHtml: `
+                            <div class="card border-0 bg-light p-3 mb-4 rounded-3">
+                                <h6 class="fw-bold text-primary mb-2"><i class="bi bi-plus-circle-fill me-1"></i>Registrar Nueva Habitación</h6>
+                                <form id="formRoom">
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-6">
+                                            <label class="form-label fw-semibold">Número de Habitación / Identificador</label>
+                                            <input type="text" class="form-control" id="rmNumber" placeholder="Ej: 101, 202-B, Cabaña 3" required>
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label fw-semibold">Tipo / Estilo</label>
+                                            <select class="form-select" id="rmType" required>
+                                                ${typeOptions}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-6">
+                                            <label class="form-label fw-semibold">Estado Inicial</label>
+                                            <select class="form-select" id="rmStatus">
+                                                <option value="AVAILABLE">Disponible para Alquilar</option>
+                                                <option value="MAINTENANCE">Inhabilitada (Mantenimiento)</option>
+                                                <option value="OUT_OF_SERVICE">Fuera de Servicio (Reparación)</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label fw-semibold">Observaciones / Detalles</label>
+                                            <input type="text" class="form-control" id="rmNotes" placeholder="Ej: Vista a la piscina, cama King">
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn btn-primary w-100 fw-bold shadow-sm" id="btnSaveRoom">
+                                        <i class="bi bi-plus-lg me-1"></i>Agregar Habitación al Rack
+                                    </button>
+                                </form>
+                            </div>
 
-                    if (!roomNumber) {
-                        UI.showToast('Debe ingresar el número de habitación.', 'warning');
-                        return;
+                            <div>
+                                <h6 class="fw-bold text-dark mb-2"><i class="bi bi-grid-3x3-gap-fill me-1 text-primary"></i>Habitaciones Registradas en el Rack (${rooms.length})</h6>
+                                ${rooms.length === 0 ? `
+                                    <p class="text-muted small text-center py-3">No hay habitaciones registradas en este hotel.</p>
+                                ` : `
+                                    <div class="table-responsive border rounded custom-scroll" style="max-height: 230px; overflow-y: auto;">
+                                        <table class="table table-sm table-hover align-middle mb-0 small">
+                                            <thead class="table-light sticky-top">
+                                                <tr>
+                                                    <th>N° Hab.</th>
+                                                    <th>Estilo / Tipo</th>
+                                                    <th>Estado</th>
+                                                    <th>Notas</th>
+                                                    <th class="text-end">Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                ${rooms.map(r => {
+                                                    let statusBadge = '';
+                                                    if (r.status === 'AVAILABLE') {
+                                                        statusBadge = `<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle me-1"></i>Disponible</span>`;
+                                                    } else if (r.status === 'OCCUPIED') {
+                                                        statusBadge = `<span class="badge bg-primary-subtle text-primary border border-primary-subtle"><i class="bi bi-person-fill me-1"></i>Ocupada</span>`;
+                                                    } else if (r.status === 'CLEANING') {
+                                                        statusBadge = `<span class="badge bg-warning-subtle text-warning border border-warning-subtle"><i class="bi bi-stars me-1"></i>Limpieza</span>`;
+                                                    } else {
+                                                        statusBadge = `<span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-slash-circle me-1"></i>Inhabilitada</span>`;
+                                                    }
+
+                                                    const isMaint = r.status === 'MAINTENANCE' || r.status === 'OUT_OF_SERVICE';
+
+                                                    return `
+                                                        <tr>
+                                                            <td class="fw-bold text-dark">Hab. ${r.room_number}</td>
+                                                            <td>${r.room_type_name || '-'}</td>
+                                                            <td>${statusBadge}</td>
+                                                            <td class="text-muted small">${r.notes || '-'}</td>
+                                                            <td class="text-end">
+                                                                <button type="button" class="btn btn-xs ${isMaint ? 'btn-outline-success' : 'btn-outline-warning'} me-1 btn-toggle-room" data-id="${r.id}" data-status="${r.status}" title="${isMaint ? 'Habilitar' : 'Inhabilitar'}">
+                                                                    <i class="bi ${isMaint ? 'bi-check-lg' : 'bi-slash-circle'}"></i> ${isMaint ? 'Habilitar' : 'Inhabilitar'}
+                                                                </button>
+                                                                <button type="button" class="btn btn-xs btn-outline-primary me-1 btn-edit-room" data-id="${r.id}" title="Editar">
+                                                                    <i class="bi bi-pencil-fill"></i>
+                                                                </button>
+                                                                <button type="button" class="btn btn-xs btn-outline-danger btn-delete-room" data-id="${r.id}" title="Eliminar">
+                                                                    <i class="bi bi-trash-fill"></i>
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    `;
+                                                }).join('')}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                `}
+                            </div>
+                        `,
+                        footerHtml: `<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>`
+                    });
+
+                    // Save room
+                    const btnSaveR = document.getElementById('btnSaveRoom');
+                    if (btnSaveR) {
+                        btnSaveR.onclick = async () => {
+                            const roomNumber = document.getElementById('rmNumber').value;
+                            const roomTypeId = document.getElementById('rmType').value;
+                            const status = document.getElementById('rmStatus').value;
+                            const notes = document.getElementById('rmNotes').value;
+
+                            if (!roomNumber) {
+                                UI.showToast('Debe ingresar el número de habitación.', 'warning');
+                                return;
+                            }
+
+                            try {
+                                await API.post('/rooms', { roomNumber, roomTypeId, status, notes });
+                                UI.showToast('Habitación creada exitosamente.', 'success');
+                                bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
+                                this.renderRack(container);
+                            } catch (e) {
+                                UI.showToast(e.message, 'danger');
+                            }
+                        };
                     }
 
-                    try {
-                        await API.post('/rooms', { roomNumber, roomTypeId, notes });
-                        UI.showToast('Habitación registrada exitosamente.', 'success');
-                        bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
-                        this.renderRack(container);
-                    } catch (e) {
-                        UI.showToast(e.message, 'danger');
-                    }
+                    const modalEl = document.getElementById('dynamicModal');
+
+                    // Toggle room status (Inhabilitar / Habilitar)
+                    modalEl.querySelectorAll('.btn-toggle-room').forEach(btn => {
+                        btn.onclick = async () => {
+                            const roomId = btn.dataset.id;
+                            const currentStatus = btn.dataset.status;
+                            const newStatus = (currentStatus === 'MAINTENANCE' || currentStatus === 'OUT_OF_SERVICE') ? 'AVAILABLE' : 'MAINTENANCE';
+
+                            try {
+                                await API.put('/rooms', { roomId, status: newStatus });
+                                UI.showToast(`Habitación ${newStatus === 'AVAILABLE' ? 'habilitada' : 'inhabilitada'} correctamente.`, 'info');
+                                bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
+                                this.renderRack(container);
+                            } catch (err) {
+                                UI.showToast(err.message, 'danger');
+                            }
+                        };
+                    });
+
+                    // Edit room submodal
+                    modalEl.querySelectorAll('.btn-edit-room').forEach(btn => {
+                        btn.onclick = () => {
+                            const roomId = btn.dataset.id;
+                            const room = rooms.find(r => r.id === roomId);
+                            if (!room) return;
+
+                            let editTypeOptions = types.map(t => `<option value="${t.id}" ${t.id === room.room_type_id ? 'selected' : ''}>${t.name} ($${t.base_price_usd}/noche)</option>`).join('');
+
+                            UI.showModal({
+                                title: `Editar Habitación N° ${room.room_number}`,
+                                bodyHtml: `
+                                    <form id="formEditRoom">
+                                        <div class="row g-2 mb-3">
+                                            <div class="col-6">
+                                                <label class="form-label fw-semibold">Número / Identificador</label>
+                                                <input type="text" class="form-control" id="editRmNumber" value="${room.room_number}" required>
+                                            </div>
+                                            <div class="col-6">
+                                                <label class="form-label fw-semibold">Estilo / Tipo</label>
+                                                <select class="form-select" id="editRmType" required>
+                                                    ${editTypeOptions}
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="row g-2 mb-3">
+                                            <div class="col-6">
+                                                <label class="form-label fw-semibold">Estado de la Habitación</label>
+                                                <select class="form-select" id="editRmStatus">
+                                                    <option value="AVAILABLE" ${room.status === 'AVAILABLE' ? 'selected' : ''}>Disponible</option>
+                                                    <option value="OCCUPIED" ${room.status === 'OCCUPIED' ? 'selected' : ''}>Ocupada</option>
+                                                    <option value="CLEANING" ${room.status === 'CLEANING' ? 'selected' : ''}>En Limpieza</option>
+                                                    <option value="MAINTENANCE" ${room.status === 'MAINTENANCE' ? 'selected' : ''}>Inhabilitada (Mantenimiento)</option>
+                                                    <option value="OUT_OF_SERVICE" ${room.status === 'OUT_OF_SERVICE' ? 'selected' : ''}>Fuera de Servicio</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-6">
+                                                <label class="form-label fw-semibold">Observaciones / Detalles</label>
+                                                <input type="text" class="form-control" id="editRmNotes" value="${room.notes || ''}">
+                                            </div>
+                                        </div>
+                                    </form>
+                                `,
+                                footerHtml: `
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                    <button type="button" class="btn btn-primary" id="btnUpdateRoom">Guardar Cambios</button>
+                                `
+                            });
+
+                            document.getElementById('btnUpdateRoom').onclick = async () => {
+                                const roomNumber = document.getElementById('editRmNumber').value;
+                                const roomTypeId = document.getElementById('editRmType').value;
+                                const status = document.getElementById('editRmStatus').value;
+                                const notes = document.getElementById('editRmNotes').value;
+
+                                try {
+                                    await API.put('/rooms', { roomId: room.id, roomNumber, roomTypeId, status, notes });
+                                    UI.showToast('Habitación actualizada exitosamente.', 'success');
+                                    bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
+                                    this.renderRack(container);
+                                } catch (err) {
+                                    UI.showToast(err.message, 'danger');
+                                }
+                            };
+                        };
+                    });
+
+                    // Delete room handler
+                    modalEl.querySelectorAll('.btn-delete-room').forEach(btn => {
+                        btn.onclick = async () => {
+                            const roomId = btn.dataset.id;
+                            try {
+                                await API.delete('/rooms?id=' + roomId);
+                                UI.showToast('Habitación eliminada.', 'info');
+                                bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
+                                this.renderRack(container);
+                            } catch (err) {
+                                UI.showToast(err.message, 'danger');
+                            }
+                        };
+                    });
                 };
+
+                renderRoomManageModal();
             };
         }
     },
@@ -1634,6 +1932,16 @@ export const ViewsHotel = {
                             </div>
                             <div class="row g-2 mb-3">
                                 <div class="col-6">
+                                    <label class="form-label"><i class="bi bi-clock me-1 text-primary"></i>Hora Específica de Check-In</label>
+                                    <input type="time" class="form-control" id="profCheckIn" value="${hotel.check_in_time || '15:00'}" required>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label"><i class="bi bi-clock-history me-1 text-danger"></i>Hora Específica de Check-Out</label>
+                                    <input type="time" class="form-control" id="profCheckOut" value="${hotel.check_out_time || '12:00'}" required>
+                                </div>
+                            </div>
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
                                     <label class="form-label">Color Primario de Marca</label>
                                     <input type="color" class="form-control form-control-color w-100" id="profColor" value="${hotel.primary_color || '#0d6efd'}">
                                 </div>
@@ -1678,12 +1986,14 @@ export const ViewsHotel = {
             const rif = document.getElementById('profRif').value;
             const phone = document.getElementById('profPhone').value;
             const address = document.getElementById('profAddress').value;
+            const check_in_time = document.getElementById('profCheckIn').value;
+            const check_out_time = document.getElementById('profCheckOut').value;
             const primary_color = document.getElementById('profColor').value;
             const dark_mode = document.getElementById('profDarkMode').checked;
 
             try {
                 const updatedHotel = await API.put('/hotels', {
-                    name, rif, phone, address, logo_url: currentLogoUrl, primary_color, dark_mode
+                    name, rif, phone, address, logo_url: currentLogoUrl, primary_color, dark_mode, check_in_time, check_out_time
                 });
                 State.setHotel(updatedHotel);
                 State.toggleDarkMode(dark_mode);

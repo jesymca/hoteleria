@@ -43,9 +43,14 @@ export async function initDB() {
                 primary_color TEXT DEFAULT '#0d6efd',
                 dark_mode INTEGER DEFAULT 0,
                 social_links TEXT,
+                check_in_time TEXT DEFAULT '15:00',
+                check_out_time TEXT DEFAULT '12:00',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             );
         `);
+
+        try { await db.execute("ALTER TABLE hotels ADD COLUMN check_in_time TEXT DEFAULT '15:00'"); } catch (e) {}
+        try { await db.execute("ALTER TABLE hotels ADD COLUMN check_out_time TEXT DEFAULT '12:00'"); } catch (e) {}
 
         await db.execute(`
             CREATE TABLE IF NOT EXISTS banks (
