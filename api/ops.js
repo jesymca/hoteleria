@@ -450,6 +450,100 @@ export default async function handler(req, res) {
                         { name: 'Alquiler de Proyector HD & Pantalla', description: 'Incluye cables HDMI y soporte', price_usd: 40.00 },
                         { name: 'Alquiler de Sistema de Sonido & Micrófono', description: 'Corneta amplificada con bluetooth', price_usd: 50.00 }
                     ],
+                    GIMNASIO: [
+                        { name: 'Pase de Día Gimnasio & Fitness', description: 'Acceso ilimitado a máquinas y área de pesas por 1 día', price_usd: 8.00 },
+                        { name: 'Sesión con Entrenador Personal (1 Hora)', description: 'Entrenamiento guiado individualizado', price_usd: 20.00 },
+                        { name: 'Clase Grupal de Yoga / Pilates', description: 'Sesión de relajación y estiramiento con instructor', price_usd: 12.00 }
+                    ],
+                    PADEL: [
+                        { name: 'Alquiler Cancha de Pádel (1 Hora)', description: 'Uso exclusivo de cancha de pádel de césped sintético', price_usd: 25.00 },
+                        { name: 'Alquiler de Raqueta & Bolas de Pádel', description: 'Incluye 1 pala profesional y tubo de 3 pelotas', price_usd: 5.00 },
+                        { name: 'Clase Particular de Pádel', description: 'Entrenamiento técnico con instructor certificado', price_usd: 30.00 }
+                    ],
+                    GUARDERIA: [
+                        { name: 'Cuidado Infantil por Hora (Kids Club)', description: 'Atención especializada por recreadores en área de juegos', price_usd: 10.00 },
+                        { name: 'Pase Día Completo Guardería Infantil', description: 'Incluye actividades recreativas, manualidades y snacks', price_usd: 25.00 },
+                        { name: 'Taller de Arte & Cerámica Infantil', description: 'Sesión creativa con materiales incluidos', price_usd: 15.00 }
+                    ],
+                    CINE: [
+                        { name: 'Entrada a Función de Cine VIP (Por Persona)', description: 'Acceso a sala climatizada con butacas reclinables', price_usd: 6.00 },
+                        { name: 'Combo Cotufas / Palomitas + Refresco Grande', description: 'Palomitas de maíz recién hechas y bebida fría 500ml', price_usd: 5.00 },
+                        { name: 'Reserva Privada Sala de Cine (2 Horas)', description: 'Uso exclusivo de la sala para grupos o familias', price_usd: 40.00 }
+                    ],
+                    PISCINA: [
+                        { name: 'Daypass Pase de Día Piscina Principal', description: 'Acceso full day a piscinas y duchas para visitantes', price_usd: 20.00 },
+                        { name: 'Alquiler Cama Balinesa / Cama VIP por Día', description: 'Reserva de cama acolchada sombreada con toallas', price_usd: 35.00 },
+                        { name: 'Alquiler de Inflables & Flotadores', description: 'Variedad de flotadores divertidos para piscina', price_usd: 8.00 }
+                    ],
+                    PLAYA: [
+                        { name: 'Alquiler Toldo Playero + 2 Sillas Reclinables', description: 'Instalación en la orilla de la playa con servicio de camarero', price_usd: 15.00 },
+                        { name: 'Coco Frío Natural con Sorbete', description: 'Agua de coco fresca recién cortada', price_usd: 3.00 },
+                        { name: 'Servicio de Tumbona Playera Adicional', description: 'Silla reclinable de playa por día completo', price_usd: 8.00 }
+                    ],
+                    GOLF: [
+                        { name: 'Green Fee Campo de Golf (18 Hoyos)', description: 'Pase al campo de golf con tarjeta de anotación', price_usd: 50.00 },
+                        { name: 'Alquiler Carrito de Golf Eléctrico', description: 'Uso por recorrido completo de 18 hoyos', price_usd: 30.00 },
+                        { name: 'Set Completo de Palos de Golf & Pelotas', description: 'Bolsa con maderas, hierros, putter y 6 pelotas', price_usd: 20.00 }
+                    ],
+                    LENCERIA: [
+                        { name: 'Juego de Toallas Playeras Adicionales', description: '2 toallas grandes de microfibra de secado rápido', price_usd: 3.00 },
+                        { name: 'Almohadón Ortopédico / Anatómico Extra', description: 'Almohada de espuma viscoelástica a solicitud', price_usd: 4.00 },
+                        { name: 'Cobija o Manta Térmica Adicional', description: 'Manta suave extra para la habitación', price_usd: 5.00 }
+                    ],
+                    TENIS: [
+                        { name: 'Alquiler Cancha de Tenis (1 Hora)', description: 'Uso de cancha iluminada de arcilla o dura', price_usd: 20.00 },
+                        { name: 'Alquiler de 2 Raquetas & Pelotas de Tenis', description: 'Equipo listo para juego en pareja', price_usd: 6.00 },
+                        { name: 'Clase Particular de Tenis con Pro', description: 'Lección de 60 minutos con entrenador', price_usd: 25.00 }
+                    ],
+                    SURF: [
+                        { name: 'Alquiler Tabla de Surf (Medio Día)', description: 'Variedad de tablas Softboard, Shortboard y Longboard', price_usd: 20.00 },
+                        { name: 'Clase de Surf con Instructor (90 Minutos)', description: 'Teoría en arena e instrucción práctica en olas', price_usd: 35.00 },
+                        { name: 'Alquiler de Stand Up Paddleboard (SUP)', description: 'Tabla de remo de pie con remo ajustable por hora', price_usd: 15.00 }
+                    ],
+                    CABALLOS: [
+                        { name: 'Paseo a Caballo por la Playa (45 min)', description: 'Recorrido guiado por la orilla del mar al atardecer', price_usd: 25.00 },
+                        { name: 'Ruta Ecuestre Guiada por la Montaña', description: 'Expedición por senderos ecológicos (2 horas)', price_usd: 35.00 }
+                    ],
+                    CUATRIMOTOS: [
+                        { name: 'Tour en Cuatrimoto 4x4 por Senderos (1 Hora)', description: 'Recorrido todoterreno en ATV rústico con casco', price_usd: 40.00 },
+                        { name: 'Alquiler de Buggy Playero 2 Puestos (2 Horas)', description: 'Vehículo rústico ligero para dunas y caminos', price_usd: 60.00 }
+                    ],
+                    HELADERIA: [
+                        { name: 'Barquilla de Helado Artesanal (2 Bolas)', description: 'Variedad de sabores criollos e internacionales', price_usd: 3.50 },
+                        { name: 'Merengada Espesa de Mantecado o Chocolate', description: 'Batido con crema batida y chispas', price_usd: 5.00 },
+                        { name: 'Copa Sundae Especial con Sirope y Frutas', description: '3 bolas de helado, topping de chocolate y nueces', price_usd: 6.00 }
+                    ],
+                    BODEGON: [
+                        { name: 'Vino Tinto Reserva Importado 0.75L', description: 'Botella de vino de cepa seleccionada', price_usd: 25.00 },
+                        { name: 'Whisky 12 Años Botella Premium', description: 'Servicio sellado con hielera y vasos fetiche', price_usd: 60.00 },
+                        { name: 'Tabla de Quesos Madurados & Embutidos', description: 'Selección de quesos gourmet, aceitunas y galletas', price_usd: 20.00 }
+                    ],
+                    TIENDA: [
+                        { name: 'Protector Solar SPF 50+ Resistente al Agua', description: 'Loción solar dermatológica 200ml', price_usd: 15.00 },
+                        { name: 'Traje de Baño / Franela Playera Marca Hotel', description: 'Prenda textil oficial con diseño exclusivo', price_usd: 25.00 },
+                        { name: 'Artesanía & Souvenir Típico Venezolano', description: 'Pieza decorativa hecha por artesanos locales', price_usd: 10.00 }
+                    ],
+                    BUCEO: [
+                        { name: 'Bautizo de Buceo Submarino PADI', description: 'Experiencia introductoria con equipo y tanque bajo el agua', price_usd: 60.00 },
+                        { name: 'Inmersión de Buceo Profundo Certificados', description: 'Salida en bote a arrecifes de coral con guía', price_usd: 50.00 },
+                        { name: 'Alquiler de Kit Snorkeling (Visor, Tubo y Aletas)', description: 'Equipo completo de careteo por día', price_usd: 12.00 }
+                    ],
+                    PARAPENTE: [
+                        { name: 'Vuelo Tándem en Parapente con Instructor', description: 'Vuelo panorámico biplaza sobre la costa/valle con video Go-Pro', price_usd: 70.00 },
+                        { name: 'Circuito Extremo de Tirolesa / Canopy', description: 'Recorrido por cable sobre la copa de los árboles', price_usd: 30.00 }
+                    ],
+                    PESCA: [
+                        { name: 'Chárter de Pesca Deportiva en Alta Mar', description: 'Salida de 4 horas en embarcación con marineros y carnada', price_usd: 250.00 },
+                        { name: 'Alquiler de Caña y Carrete de Pesca', description: 'Equipo de pesca desde muelle o playa por día', price_usd: 20.00 }
+                    ],
+                    VEHICULOS: [
+                        { name: 'Alquiler Rústico 4x4 por Día (Toyota / Jeep)', description: 'Vehículo todoterreno con km libre e seguro básico', price_usd: 90.00 },
+                        { name: 'Alquiler Carrito Eléctrico Urbano por Día', description: 'Vehículo ecológico de 4 puestos para dentro de la propiedad', price_usd: 45.00 }
+                    ],
+                    EVENTOS: [
+                        { name: 'Alquiler y Montaje Salón de Bodas / Eventos', description: 'Uso de salón decorado con climatización y luces', price_usd: 300.00 },
+                        { name: 'Servicio de Coctelería & Meseros para Evento', description: 'Personal de atención por 4 horas', price_usd: 80.00 }
+                    ],
                     HOUSEKEEPING: [
                         { name: 'Servicio de Limpieza Extra a Solicitud', description: 'Aseo completo de habitación fuera de horario', price_usd: 10.00 },
                         { name: 'Cambio Adicional de Lencería y Toallas', description: 'Juego completo de sabanas y toallas limpias', price_usd: 5.00 }

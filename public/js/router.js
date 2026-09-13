@@ -116,6 +116,66 @@ export const Router = {
             case '#alquiler-equipos':
                 ViewsHotel.renderServicioPOS(mainContainer, 'ALQUILER_EQUIPOS', 'Alquiler de Equipos Tecnológicos', 'Proyectores, sonido y pantallas', 'bi-speaker');
                 break;
+            case '#gimnasio':
+                ViewsHotel.renderServicioPOS(mainContainer, 'GIMNASIO', 'Gimnasio & Fitness Center', 'Equipos, entrenadores y clases guiadas', 'bi-heart-pulse');
+                break;
+            case '#padel':
+                ViewsHotel.renderServicioPOS(mainContainer, 'PADEL', 'Canchas de Pádel', 'Reservas de canchas, raquetas y pelotas', 'bi-circle');
+                break;
+            case '#guarderia':
+                ViewsHotel.renderServicioPOS(mainContainer, 'GUARDERIA', 'Guardería & Kids Club', 'Cuidado infantil, recreadores y talleres', 'bi-emoji-smile');
+                break;
+            case '#cine':
+                ViewsHotel.renderServicioPOS(mainContainer, 'CINE', 'Cine & Sala de Proyecciones', 'Películas, cotufas y funciones privadas', 'bi-film');
+                break;
+            case '#piscina':
+                ViewsHotel.renderServicioPOS(mainContainer, 'PISCINA', 'Piscina & Daypass', 'Pasadías, camas balinesas e inflables', 'bi-water');
+                break;
+            case '#playa':
+                ViewsHotel.renderServicioPOS(mainContainer, 'PLAYA', 'Playa & Club de Playa', 'Toldos, sillas reclinables y servicio playero', 'bi-sun');
+                break;
+            case '#golf':
+                ViewsHotel.renderServicioPOS(mainContainer, 'GOLF', 'Campo de Golf & Minigolf', 'Green fee, carritos y palos de golf', 'bi-flag');
+                break;
+            case '#lenceria':
+                ViewsHotel.renderServicioPOS(mainContainer, 'LENCERIA', 'Lencería & Toallas Adicionales', 'Toallas playeras, almohadones y mantas', 'bi-shield-square');
+                break;
+            case '#tenis':
+                ViewsHotel.renderServicioPOS(mainContainer, 'TENIS', 'Canchas de Tenis', 'Alquiler de canchas, raquetas y clases', 'bi-dribbble');
+                break;
+            case '#surf':
+                ViewsHotel.renderServicioPOS(mainContainer, 'SURF', 'Surf & Deportes Acuáticos', 'Tablas de surf, paddleboard y clases', 'bi-tsunami');
+                break;
+            case '#caballos':
+                ViewsHotel.renderServicioPOS(mainContainer, 'CABALLOS', 'Paseos a Caballo', 'Rutas guiadas por playa y montaña', 'bi-postage');
+                break;
+            case '#cuatrimotos':
+                ViewsHotel.renderServicioPOS(mainContainer, 'CUATRIMOTOS', 'Cuatrimotos & ATVs 4x4', 'Tours rústicos y buggies playeros', 'bi-truck');
+                break;
+            case '#heladeria':
+                ViewsHotel.renderServicioPOS(mainContainer, 'HELADERIA', 'Heladería & Postres Artesanales', 'Helados, merengadas y dulces criollos', 'bi-cup-hot');
+                break;
+            case '#bodegon':
+                ViewsHotel.renderServicioPOS(mainContainer, 'BODEGON', 'Bodegón & Licorería VIP', 'Licores finos, vinos y snacks gourmet', 'bi-shop-window');
+                break;
+            case '#tienda':
+                ViewsHotel.renderServicioPOS(mainContainer, 'TIENDA', 'Tienda de Conveniencia & Souvenirs', 'Artículos playeros, ropa y artesanías', 'bi-bag-check');
+                break;
+            case '#buceo':
+                ViewsHotel.renderServicioPOS(mainContainer, 'BUCEO', 'Snorkeling & Buceo PADI', 'Inmersiones marinos, visor y tanques', 'bi-eye');
+                break;
+            case '#parapente':
+                ViewsHotel.renderServicioPOS(mainContainer, 'PARAPENTE', 'Parapente & Aventura Extrema', 'Vuelos tándem y tirolesa extrema', 'bi-wind');
+                break;
+            case '#pesca':
+                ViewsHotel.renderServicioPOS(mainContainer, 'PESCA', 'Pesca Deportiva & Marina', 'Chárter de pesca en alta mar y cañas', 'bi-anchor');
+                break;
+            case '#vehiculos':
+                ViewsHotel.renderServicioPOS(mainContainer, 'VEHICULOS', 'Alquiler de Vehículos 4x4', 'Vehículos rústicos y carritos de golf', 'bi-ev-front');
+                break;
+            case '#eventos':
+                ViewsHotel.renderServicioPOS(mainContainer, 'EVENTOS', 'Salón de Eventos & Bodas', 'Montajes, banquetes y festejos', 'bi-balloon');
+                break;
 
             // SuperAdmin Routes
             case '#admin-ventas':
@@ -197,60 +257,50 @@ export const Router = {
                 <li class="nav-item"><a class="nav-link" href="#admin-metodos"><i class="bi bi-wallet2 me-1"></i>Métodos</a></li>
                 <li class="nav-item"><a class="nav-link" href="#admin-conectividad"><i class="bi bi-activity me-1"></i>Salud API</a></li>
             `;
-        } else if (isStaff) {
-            const perms = user.permissions || [];
-            menuHtml += `
-                <li class="nav-item"><a class="nav-link" href="#habitaciones"><i class="bi bi-grid-3x3-gap me-1"></i>Rack</a></li>
-            `;
+            const staffPosModules = [
+                { id: 'HOUSEKEEPING', hash: '#limpieza', label: 'Mucamas', icon: 'bi-stars', class: 'text-warning fw-bold' },
+                { id: 'RESTAURANT', hash: '#restaurante', label: 'Restaurante', icon: 'bi-utensils' },
+                { id: 'BAR', hash: '#bar', label: 'Bar', icon: 'bi-cup-straw' },
+                { id: 'SPA', hash: '#spa', label: 'Spa', icon: 'bi-flower1' },
+                { id: 'PELUQUERIA', hash: '#peluqueria', label: 'Peluquería', icon: 'bi-scissors' },
+                { id: 'GALERIA', hash: '#galeria', label: 'Galería', icon: 'bi-palette' },
+                { id: 'GUIA_TURISTICA', hash: '#guia-turistica', label: 'Tours', icon: 'bi-compass' },
+                { id: 'TAXIS', hash: '#taxis', label: 'Taxis', icon: 'bi-car-front-fill' },
+                { id: 'LANCHAS', hash: '#lanchas', label: 'Lanchas', icon: 'bi-tsunami' },
+                { id: 'TINTORERIA', hash: '#tintoreria', label: 'Tintorería', icon: 'bi-box-seam' },
+                { id: 'ZAPATERIA', hash: '#zapateria', label: 'Zapatería', icon: 'bi-tag' },
+                { id: 'MANICURISTA', hash: '#manicurista', label: 'Manicurista', icon: 'bi-hand-index-thumb' },
+                { id: 'PEDICURISTA', hash: '#pedicurista', label: 'Pedicurista', icon: 'bi-person-walking' },
+                { id: 'TECNOLOGIA', hash: '#tecnologia', label: 'Tecnología', icon: 'bi-laptop' },
+                { id: 'ALQUILER_ESPACIOS', hash: '#alquiler-espacios', label: 'Espacios', icon: 'bi-building' },
+                { id: 'ALQUILER_EQUIPOS', hash: '#alquiler-equipos', label: 'Equipos', icon: 'bi-speaker' },
+                { id: 'GIMNASIO', hash: '#gimnasio', label: 'Gimnasio', icon: 'bi-heart-pulse' },
+                { id: 'PADEL', hash: '#padel', label: 'Pádel', icon: 'bi-circle' },
+                { id: 'GUARDERIA', hash: '#guarderia', label: 'Guardería', icon: 'bi-emoji-smile' },
+                { id: 'CINE', hash: '#cine', label: 'Cine', icon: 'bi-film' },
+                { id: 'PISCINA', hash: '#piscina', label: 'Piscina', icon: 'bi-water' },
+                { id: 'PLAYA', hash: '#playa', label: 'Playa', icon: 'bi-sun' },
+                { id: 'GOLF', hash: '#golf', label: 'Golf', icon: 'bi-flag' },
+                { id: 'LENCERIA', hash: '#lenceria', label: 'Lencería', icon: 'bi-shield-square' },
+                { id: 'TENIS', hash: '#tenis', label: 'Tenis', icon: 'bi-dribbble' },
+                { id: 'SURF', hash: '#surf', label: 'Surf', icon: 'bi-tsunami' },
+                { id: 'CABALLOS', hash: '#caballos', label: 'Caballos', icon: 'bi-postage' },
+                { id: 'CUATRIMOTOS', hash: '#cuatrimotos', label: 'Cuatrimotos', icon: 'bi-truck' },
+                { id: 'HELADERIA', hash: '#heladeria', label: 'Heladería', icon: 'bi-cup-hot' },
+                { id: 'BODEGON', hash: '#bodegon', label: 'Bodegón', icon: 'bi-shop-window' },
+                { id: 'TIENDA', hash: '#tienda', label: 'Tienda', icon: 'bi-bag-check' },
+                { id: 'BUCEO', hash: '#buceo', label: 'Buceo', icon: 'bi-eye' },
+                { id: 'PARAPENTE', hash: '#parapente', label: 'Parapente', icon: 'bi-wind' },
+                { id: 'PESCA', hash: '#pesca', label: 'Pesca', icon: 'bi-anchor' },
+                { id: 'VEHICULOS', hash: '#vehiculos', label: 'Rústicos 4x4', icon: 'bi-ev-front' },
+                { id: 'EVENTOS', hash: '#eventos', label: 'Eventos', icon: 'bi-balloon' }
+            ];
 
-            if (perms.includes('HOUSEKEEPING') || perms.length === 0) {
-                menuHtml += `<li class="nav-item"><a class="nav-link text-warning fw-bold" href="#limpieza"><i class="bi bi-stars me-1"></i>Mucamas</a></li>`;
-            }
-            if (perms.includes('RESTAURANT')) {
-                menuHtml += `<li class="nav-item"><a class="nav-link" href="#restaurante"><i class="bi bi-utensils me-1"></i>Restaurante</a></li>`;
-            }
-            if (perms.includes('BAR')) {
-                menuHtml += `<li class="nav-item"><a class="nav-link" href="#bar"><i class="bi bi-cup-straw me-1"></i>Bar</a></li>`;
-            }
-            if (perms.includes('SPA')) {
-                menuHtml += `<li class="nav-item"><a class="nav-link" href="#spa"><i class="bi bi-flower1 me-1"></i>Spa</a></li>`;
-            }
-            if (perms.includes('PELUQUERIA')) {
-                menuHtml += `<li class="nav-item"><a class="nav-link" href="#peluqueria"><i class="bi bi-scissors me-1"></i>Peluquería</a></li>`;
-            }
-            if (perms.includes('GALERIA')) {
-                menuHtml += `<li class="nav-item"><a class="nav-link" href="#galeria"><i class="bi bi-palette me-1"></i>Galería</a></li>`;
-            }
-            if (perms.includes('GUIA_TURISTICA')) {
-                menuHtml += `<li class="nav-item"><a class="nav-link" href="#guia-turistica"><i class="bi bi-compass me-1"></i>Tours</a></li>`;
-            }
-            if (perms.includes('TAXIS')) {
-                menuHtml += `<li class="nav-item"><a class="nav-link" href="#taxis"><i class="bi bi-car-front-fill me-1"></i>Taxis</a></li>`;
-            }
-            if (perms.includes('LANCHAS')) {
-                menuHtml += `<li class="nav-item"><a class="nav-link" href="#lanchas"><i class="bi bi-tsunami me-1"></i>Lanchas</a></li>`;
-            }
-            if (perms.includes('TINTORERIA')) {
-                menuHtml += `<li class="nav-item"><a class="nav-link" href="#tintoreria"><i class="bi bi-box-seam me-1"></i>Tintorería</a></li>`;
-            }
-            if (perms.includes('ZAPATERIA')) {
-                menuHtml += `<li class="nav-item"><a class="nav-link" href="#zapateria"><i class="bi bi-tag me-1"></i>Zapatería</a></li>`;
-            }
-            if (perms.includes('MANICURISTA')) {
-                menuHtml += `<li class="nav-item"><a class="nav-link" href="#manicurista"><i class="bi bi-hand-index-thumb me-1"></i>Manicurista</a></li>`;
-            }
-            if (perms.includes('PEDICURISTA')) {
-                menuHtml += `<li class="nav-item"><a class="nav-link" href="#pedicurista"><i class="bi bi-person-walking me-1"></i>Pedicurista</a></li>`;
-            }
-            if (perms.includes('TECNOLOGIA')) {
-                menuHtml += `<li class="nav-item"><a class="nav-link" href="#tecnologia"><i class="bi bi-laptop me-1"></i>Tecnología</a></li>`;
-            }
-            if (perms.includes('ALQUILER_ESPACIOS')) {
-                menuHtml += `<li class="nav-item"><a class="nav-link" href="#alquiler-espacios"><i class="bi bi-building me-1"></i>Espacios</a></li>`;
-            }
-            if (perms.includes('ALQUILER_EQUIPOS')) {
-                menuHtml += `<li class="nav-item"><a class="nav-link" href="#alquiler-equipos"><i class="bi bi-speaker me-1"></i>Equipos</a></li>`;
-            }
+            staffPosModules.forEach(mod => {
+                if (perms.includes(mod.id) || (mod.id === 'HOUSEKEEPING' && perms.length === 0)) {
+                    menuHtml += `<li class="nav-item"><a class="nav-link ${mod.class || ''}" href="${mod.hash}"><i class="bi ${mod.icon} me-1"></i>${mod.label}</a></li>`;
+                }
+            });
 
             menuHtml += `<li class="nav-item"><a class="nav-link" href="#consumos"><i class="bi bi-receipt me-1"></i>Consumos</a></li>`;
         } else {
@@ -261,25 +311,57 @@ export const Router = {
                 
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle text-primary fw-semibold" href="#" data-bs-toggle="dropdown">
-                        <i class="bi bi-shop me-1"></i>Servicios Extras POS
+                        <i class="bi bi-shop me-1"></i>Servicios Extras POS (35)
                     </a>
-                    <ul class="dropdown-menu shadow border-0">
-                        <li><a class="dropdown-item" href="#restaurante"><i class="bi bi-utensils me-2 text-primary"></i>Restaurante & Comedor</a></li>
-                        <li><a class="dropdown-item" href="#bar"><i class="bi bi-cup-straw me-2 text-primary"></i>Bar & Coctelería</a></li>
-                        <li><a class="dropdown-item" href="#spa"><i class="bi bi-flower1 me-2 text-primary"></i>Spa & Masajes</a></li>
-                        <li><a class="dropdown-item" href="#peluqueria"><i class="bi bi-scissors me-2 text-primary"></i>Peluquería & Barbería</a></li>
-                        <li><a class="dropdown-item" href="#galeria"><i class="bi bi-palette me-2 text-primary"></i>Galería & Arte</a></li>
-                        <li><a class="dropdown-item" href="#guia-turistica"><i class="bi bi-compass me-2 text-primary"></i>Guía Turística & Tours</a></li>
-                        <li><a class="dropdown-item" href="#taxis"><i class="bi bi-car-front-fill me-2 text-primary"></i>Servicio de Taxis</a></li>
-                        <li><a class="dropdown-item" href="#lanchas"><i class="bi bi-tsunami me-2 text-primary"></i>Paseos en Lancha</a></li>
+                    <ul class="dropdown-menu shadow-lg border-0 rounded-3 custom-scroll" style="max-height: 440px; min-width: 320px; overflow-y: auto;">
+                        <li><h6 class="dropdown-header text-uppercase text-primary fw-bold"><i class="bi bi-cup-straw me-1"></i>Gastronomía & Entretenimiento</h6></li>
+                        <li><a class="dropdown-item py-2" href="#restaurante"><i class="bi bi-utensils me-2 text-primary"></i>Restaurante & Comedor</a></li>
+                        <li><a class="dropdown-item py-2" href="#bar"><i class="bi bi-cup-straw me-2 text-primary"></i>Bar & Coctelería</a></li>
+                        <li><a class="dropdown-item py-2" href="#heladeria"><i class="bi bi-cup-hot me-2 text-primary"></i>Heladería & Postres</a></li>
+                        <li><a class="dropdown-item py-2" href="#bodegon"><i class="bi bi-shop-window me-2 text-primary"></i>Bodegón & Licorería VIP</a></li>
+                        <li><a class="dropdown-item py-2" href="#cine"><i class="bi bi-film me-2 text-primary"></i>Cine & Sala Proyecciones</a></li>
+
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="#tintoreria"><i class="bi bi-box-seam me-2 text-primary"></i>Tintorería & Lavandería</a></li>
-                        <li><a class="dropdown-item" href="#zapateria"><i class="bi bi-tag me-2 text-primary"></i>Zapatería & Calzado</a></li>
-                        <li><a class="dropdown-item" href="#manicurista"><i class="bi bi-hand-index-thumb me-2 text-primary"></i>Manicurista</a></li>
-                        <li><a class="dropdown-item" href="#pedicurista"><i class="bi bi-person-walking me-2 text-primary"></i>Pedicurista</a></li>
-                        <li><a class="dropdown-item" href="#tecnologia"><i class="bi bi-laptop me-2 text-primary"></i>Tecnología & WiFi</a></li>
-                        <li><a class="dropdown-item" href="#alquiler-espacios"><i class="bi bi-building me-2 text-primary"></i>Alquiler de Espacios</a></li>
-                        <li><a class="dropdown-item" href="#alquiler-equipos"><i class="bi bi-speaker me-2 text-primary"></i>Alquiler de Equipos</a></li>
+                        <li><h6 class="dropdown-header text-uppercase text-primary fw-bold"><i class="bi bi-sun me-1"></i>Deportes, Playa & Aventura</h6></li>
+                        <li><a class="dropdown-item py-2" href="#piscina"><i class="bi bi-water me-2 text-primary"></i>Piscina & Daypass</a></li>
+                        <li><a class="dropdown-item py-2" href="#playa"><i class="bi bi-sun me-2 text-primary"></i>Playa & Club de Playa</a></li>
+                        <li><a class="dropdown-item py-2" href="#surf"><i class="bi bi-tsunami me-2 text-primary"></i>Surf & Deportes Acuáticos</a></li>
+                        <li><a class="dropdown-item py-2" href="#padel"><i class="bi bi-circle me-2 text-primary"></i>Canchas de Pádel</a></li>
+                        <li><a class="dropdown-item py-2" href="#tenis"><i class="bi bi-dribbble me-2 text-primary"></i>Canchas de Tenis</a></li>
+                        <li><a class="dropdown-item py-2" href="#golf"><i class="bi bi-flag me-2 text-primary"></i>Campo de Golf & Minigolf</a></li>
+                        <li><a class="dropdown-item py-2" href="#gimnasio"><i class="bi bi-heart-pulse me-2 text-primary"></i>Gimnasio & Fitness</a></li>
+                        <li><a class="dropdown-item py-2" href="#caballos"><i class="bi bi-postage me-2 text-primary"></i>Paseos a Caballo</a></li>
+                        <li><a class="dropdown-item py-2" href="#cuatrimotos"><i class="bi bi-truck me-2 text-primary"></i>Cuatrimotos & ATVs 4x4</a></li>
+                        <li><a class="dropdown-item py-2" href="#buceo"><i class="bi bi-eye me-2 text-primary"></i>Snorkeling & Buceo PADI</a></li>
+                        <li><a class="dropdown-item py-2" href="#parapente"><i class="bi bi-wind me-2 text-primary"></i>Parapente & Aventura</a></li>
+                        <li><a class="dropdown-item py-2" href="#pesca"><i class="bi bi-anchor me-2 text-primary"></i>Pesca Deportiva & Marina</a></li>
+
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header text-uppercase text-primary fw-bold"><i class="bi bi-flower1 me-1"></i>Bienestar & Cuidado Infantil</h6></li>
+                        <li><a class="dropdown-item py-2" href="#spa"><i class="bi bi-flower1 me-2 text-primary"></i>Spa & Masajes</a></li>
+                        <li><a class="dropdown-item py-2" href="#peluqueria"><i class="bi bi-scissors me-2 text-primary"></i>Peluquería & Barbería</a></li>
+                        <li><a class="dropdown-item py-2" href="#manicurista"><i class="bi bi-hand-index-thumb me-2 text-primary"></i>Manicurista</a></li>
+                        <li><a class="dropdown-item py-2" href="#pedicurista"><i class="bi bi-person-walking me-2 text-primary"></i>Pedicurista</a></li>
+                        <li><a class="dropdown-item py-2" href="#guarderia"><i class="bi bi-emoji-smile me-2 text-primary"></i>Guardería & Kids Club</a></li>
+
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header text-uppercase text-primary fw-bold"><i class="bi bi-car-front-fill me-1"></i>Tours, Tienda & Movilidad</h6></li>
+                        <li><a class="dropdown-item py-2" href="#guia-turistica"><i class="bi bi-compass me-2 text-primary"></i>Guía Turística & Tours</a></li>
+                        <li><a class="dropdown-item py-2" href="#taxis"><i class="bi bi-car-front-fill me-2 text-primary"></i>Servicio de Taxis</a></li>
+                        <li><a class="dropdown-item py-2" href="#lanchas"><i class="bi bi-tsunami me-2 text-primary"></i>Paseos en Lancha</a></li>
+                        <li><a class="dropdown-item py-2" href="#vehiculos"><i class="bi bi-ev-front me-2 text-primary"></i>Alquiler Vehículos 4x4</a></li>
+                        <li><a class="dropdown-item py-2" href="#tienda"><i class="bi bi-bag-check me-2 text-primary"></i>Tienda & Souvenirs</a></li>
+                        <li><a class="dropdown-item py-2" href="#galeria"><i class="bi bi-palette me-2 text-primary"></i>Galería & Arte</a></li>
+
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header text-uppercase text-primary fw-bold"><i class="bi bi-building me-1"></i>Servicios Generales & Eventos</h6></li>
+                        <li><a class="dropdown-item py-2" href="#tintoreria"><i class="bi bi-box-seam me-2 text-primary"></i>Tintorería & Lavandería</a></li>
+                        <li><a class="dropdown-item py-2" href="#zapateria"><i class="bi bi-tag me-2 text-primary"></i>Zapatería & Calzado</a></li>
+                        <li><a class="dropdown-item py-2" href="#lenceria"><i class="bi bi-shield-square me-2 text-primary"></i>Lencería & Toallas Extra</a></li>
+                        <li><a class="dropdown-item py-2" href="#tecnologia"><i class="bi bi-laptop me-2 text-primary"></i>Tecnología & WiFi</a></li>
+                        <li><a class="dropdown-item py-2" href="#alquiler-espacios"><i class="bi bi-building me-2 text-primary"></i>Alquiler de Espacios</a></li>
+                        <li><a class="dropdown-item py-2" href="#alquiler-equipos"><i class="bi bi-speaker me-2 text-primary"></i>Alquiler de Equipos</a></li>
+                        <li><a class="dropdown-item py-2" href="#eventos"><i class="bi bi-balloon me-2 text-primary"></i>Salón de Eventos & Bodas</a></li>
                     </ul>
                 </li>
 

@@ -1335,7 +1335,7 @@ export const ViewsHotel = {
                                     <button type="button" class="btn btn-sm btn-outline-success fw-bold" id="btnDownloadGlobalCsv"><i class="bi bi-file-earmark-arrow-down me-1"></i>Descargar Plantilla Global</button>
                                 </div>
                                 <div class="small bg-white p-2 rounded border mb-2 text-muted">
-                                    <strong>Departamentos válidos:</strong> RESTAURANTE, BAR, SPA, PELUQUERIA, GALERIA, GUIA_TURISTICA, TAXIS, LANCHAS, TINTORERIA, ZAPATERIA, MANICURISTA, PEDICURISTA, TECNOLOGIA, ALQUILER_ESPACIOS, ALQUILER_EQUIPOS, HOUSEKEEPING.
+                                    <strong>Departamentos válidos:</strong> RESTAURANTE, BAR, SPA, PELUQUERIA, GALERIA, GUIA_TURISTICA, TAXIS, LANCHAS, TINTORERIA, ZAPATERIA, MANICURISTA, PEDICURISTA, TECNOLOGIA, ALQUILER_ESPACIOS, ALQUILER_EQUIPOS, GIMNASIO, PADEL, GUARDERIA, CINE, PISCINA, PLAYA, GOLF, LENCERIA, TENIS, SURF, CABALLOS, CUATRIMOTOS, HELADERIA, BODEGON, TIENDA, BUCEO, PARAPENTE, PESCA, VEHICULOS, EVENTOS, HOUSEKEEPING.
                                 </div>
                                 <hr class="my-2">
                                 <div>
@@ -1617,6 +1617,26 @@ export const ViewsHotel = {
                                     <option value="TECNOLOGIA">Servicios de Tecnología & WiFi</option>
                                     <option value="ALQUILER_ESPACIOS">Alquiler de Espacios del Hotel</option>
                                     <option value="ALQUILER_EQUIPOS">Alquiler de Equipos Tecnológicos</option>
+                                    <option value="GIMNASIO">Gimnasio & Fitness Center</option>
+                                    <option value="PADEL">Canchas de Pádel</option>
+                                    <option value="GUARDERIA">Guardería & Kids Club</option>
+                                    <option value="CINE">Cine & Sala Proyecciones</option>
+                                    <option value="PISCINA">Piscina & Daypass</option>
+                                    <option value="PLAYA">Playa & Club de Playa</option>
+                                    <option value="GOLF">Campo de Golf & Minigolf</option>
+                                    <option value="LENCERIA">Lencería & Toallas Extra</option>
+                                    <option value="TENIS">Canchas de Tenis</option>
+                                    <option value="SURF">Surf & Deportes Acuáticos</option>
+                                    <option value="CABALLOS">Paseos a Caballo</option>
+                                    <option value="CUATRIMOTOS">Cuatrimotos & ATVs 4x4</option>
+                                    <option value="HELADERIA">Heladería & Postres</option>
+                                    <option value="BODEGON">Bodegón & Licorería VIP</option>
+                                    <option value="TIENDA">Tienda de Conveniencia & Souvenirs</option>
+                                    <option value="BUCEO">Snorkeling & Buceo PADI</option>
+                                    <option value="PARAPENTE">Parapente & Aventura Extrema</option>
+                                    <option value="PESCA">Pesca Deportiva & Marina</option>
+                                    <option value="VEHICULOS">Alquiler Vehículos 4x4</option>
+                                    <option value="EVENTOS">Salón de Eventos & Bodas</option>
                                     <option value="OTHER">Otro Servicio Especial</option>
                                 </select>
                             </div>
@@ -1651,22 +1671,42 @@ export const ViewsHotel = {
             container.querySelector('#btnCreateStaff').onclick = () => {
                 let deptOptions = depts.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
                 const serviceCheckboxes = [
-                    { type: 'RESTAURANT', label: 'Restaurante / Comedor' },
-                    { type: 'BAR', label: 'Bar / Coctelería' },
-                    { type: 'SPA', label: 'Spa & Masajes' },
-                    { type: 'PELUQUERIA', label: 'Peluquería & Barbería' },
-                    { type: 'GALERIA', label: 'Galería & Arte' },
-                    { type: 'GUIA_TURISTICA', label: 'Guía Turística & Tours' },
-                    { type: 'TAXIS', label: 'Servicio de Taxis' },
-                    { type: 'LANCHAS', label: 'Viajes en Lancha' },
+                    { type: 'RESTAURANT', label: 'Restaurante' },
+                    { type: 'BAR', label: 'Bar & Coctelería' },
+                    { type: 'SPA', label: 'Spa' },
+                    { type: 'PELUQUERIA', label: 'Peluquería' },
+                    { type: 'GALERIA', label: 'Galería' },
+                    { type: 'GUIA_TURISTICA', label: 'Tours' },
+                    { type: 'TAXIS', label: 'Taxis' },
+                    { type: 'LANCHAS', label: 'Lanchas' },
                     { type: 'TINTORERIA', label: 'Tintorería' },
                     { type: 'ZAPATERIA', label: 'Zapatería' },
                     { type: 'MANICURISTA', label: 'Manicurista' },
                     { type: 'PEDICURISTA', label: 'Pedicurista' },
-                    { type: 'TECNOLOGIA', label: 'Tecnología & WiFi' },
-                    { type: 'ALQUILER_ESPACIOS', label: 'Alquiler Espacios' },
-                    { type: 'ALQUILER_EQUIPOS', label: 'Alquiler Equipos' },
-                    { type: 'HOUSEKEEPING', label: 'Limpieza / Mucamas' }
+                    { type: 'TECNOLOGIA', label: 'Tecnología' },
+                    { type: 'ALQUILER_ESPACIOS', label: 'Espacios' },
+                    { type: 'ALQUILER_EQUIPOS', label: 'Equipos' },
+                    { type: 'GIMNASIO', label: 'Gimnasio' },
+                    { type: 'PADEL', label: 'Pádel' },
+                    { type: 'GUARDERIA', label: 'Guardería' },
+                    { type: 'CINE', label: 'Cine' },
+                    { type: 'PISCINA', label: 'Piscina' },
+                    { type: 'PLAYA', label: 'Playa' },
+                    { type: 'GOLF', label: 'Golf' },
+                    { type: 'LENCERIA', label: 'Lencería' },
+                    { type: 'TENIS', label: 'Tenis' },
+                    { type: 'SURF', label: 'Surf' },
+                    { type: 'CABALLOS', label: 'Caballos' },
+                    { type: 'CUATRIMOTOS', label: 'Cuatrimotos' },
+                    { type: 'HELADERIA', label: 'Heladería' },
+                    { type: 'BODEGON', label: 'Bodegón' },
+                    { type: 'TIENDA', label: 'Tienda' },
+                    { type: 'BUCEO', label: 'Buceo' },
+                    { type: 'PARAPENTE', label: 'Parapente' },
+                    { type: 'PESCA', label: 'Pesca' },
+                    { type: 'VEHICULOS', label: 'Rústicos 4x4' },
+                    { type: 'EVENTOS', label: 'Eventos' },
+                    { type: 'HOUSEKEEPING', label: 'Mucamas' }
                 ].map(s => `
                     <div class="col-6 col-md-4">
                         <div class="form-check">
@@ -1707,7 +1747,7 @@ export const ViewsHotel = {
                             </div>
                             <div class="mb-2">
                                 <label class="form-label fw-bold text-primary">Servicios Permitidos (Acceso a POS / Gestión)</label>
-                                <div class="row g-2 p-2 bg-light rounded border">
+                                <div class="row g-2 p-2 bg-light rounded border custom-scroll" style="max-height: 220px; overflow-y: auto;">
                                     ${serviceCheckboxes}
                                 </div>
                             </div>
@@ -1783,6 +1823,26 @@ export const ViewsHotel = {
                             <option value="TECNOLOGIA" ${dept.type === 'TECNOLOGIA' ? 'selected' : ''}>Servicios de Tecnología & WiFi</option>
                             <option value="ALQUILER_ESPACIOS" ${dept.type === 'ALQUILER_ESPACIOS' ? 'selected' : ''}>Alquiler de Espacios del Hotel</option>
                             <option value="ALQUILER_EQUIPOS" ${dept.type === 'ALQUILER_EQUIPOS' ? 'selected' : ''}>Alquiler de Equipos Tecnológicos</option>
+                            <option value="GIMNASIO" ${dept.type === 'GIMNASIO' ? 'selected' : ''}>Gimnasio & Fitness Center</option>
+                            <option value="PADEL" ${dept.type === 'PADEL' ? 'selected' : ''}>Canchas de Pádel</option>
+                            <option value="GUARDERIA" ${dept.type === 'GUARDERIA' ? 'selected' : ''}>Guardería & Kids Club</option>
+                            <option value="CINE" ${dept.type === 'CINE' ? 'selected' : ''}>Cine & Sala Proyecciones</option>
+                            <option value="PISCINA" ${dept.type === 'PISCINA' ? 'selected' : ''}>Piscina & Daypass</option>
+                            <option value="PLAYA" ${dept.type === 'PLAYA' ? 'selected' : ''}>Playa & Club de Playa</option>
+                            <option value="GOLF" ${dept.type === 'GOLF' ? 'selected' : ''}>Campo de Golf & Minigolf</option>
+                            <option value="LENCERIA" ${dept.type === 'LENCERIA' ? 'selected' : ''}>Lencería & Toallas Extra</option>
+                            <option value="TENIS" ${dept.type === 'TENIS' ? 'selected' : ''}>Canchas de Tenis</option>
+                            <option value="SURF" ${dept.type === 'SURF' ? 'selected' : ''}>Surf & Deportes Acuáticos</option>
+                            <option value="CABALLOS" ${dept.type === 'CABALLOS' ? 'selected' : ''}>Paseos a Caballo</option>
+                            <option value="CUATRIMOTOS" ${dept.type === 'CUATRIMOTOS' ? 'selected' : ''}>Cuatrimotos & ATVs 4x4</option>
+                            <option value="HELADERIA" ${dept.type === 'HELADERIA' ? 'selected' : ''}>Heladería & Postres</option>
+                            <option value="BODEGON" ${dept.type === 'BODEGON' ? 'selected' : ''}>Bodegón & Licorería VIP</option>
+                            <option value="TIENDA" ${dept.type === 'TIENDA' ? 'selected' : ''}>Tienda & Souvenirs</option>
+                            <option value="BUCEO" ${dept.type === 'BUCEO' ? 'selected' : ''}>Snorkeling & Buceo PADI</option>
+                            <option value="PARAPENTE" ${dept.type === 'PARAPENTE' ? 'selected' : ''}>Parapente & Aventura</option>
+                            <option value="PESCA" ${dept.type === 'PESCA' ? 'selected' : ''}>Pesca Deportiva & Marina</option>
+                            <option value="VEHICULOS" ${dept.type === 'VEHICULOS' ? 'selected' : ''}>Alquiler Vehículos 4x4</option>
+                            <option value="EVENTOS" ${dept.type === 'EVENTOS' ? 'selected' : ''}>Salón de Eventos & Bodas</option>
                             <option value="OTHER" ${dept.type === 'OTHER' ? 'selected' : ''}>Otro Servicio Especial</option>
                         </select>
                     </div>
@@ -1824,22 +1884,42 @@ export const ViewsHotel = {
 
         const currentPerms = staffMember.permissions || [];
         const serviceCheckboxes = [
-            { type: 'RESTAURANT', label: 'Restaurante / Comedor' },
-            { type: 'BAR', label: 'Bar / Coctelería' },
-            { type: 'SPA', label: 'Spa & Masajes' },
-            { type: 'PELUQUERIA', label: 'Peluquería & Barbería' },
-            { type: 'GALERIA', label: 'Galería & Arte' },
-            { type: 'GUIA_TURISTICA', label: 'Guía Turística & Tours' },
-            { type: 'TAXIS', label: 'Servicio de Taxis' },
-            { type: 'LANCHAS', label: 'Viajes en Lancha' },
+            { type: 'RESTAURANT', label: 'Restaurante' },
+            { type: 'BAR', label: 'Bar & Coctelería' },
+            { type: 'SPA', label: 'Spa' },
+            { type: 'PELUQUERIA', label: 'Peluquería' },
+            { type: 'GALERIA', label: 'Galería' },
+            { type: 'GUIA_TURISTICA', label: 'Tours' },
+            { type: 'TAXIS', label: 'Taxis' },
+            { type: 'LANCHAS', label: 'Lanchas' },
             { type: 'TINTORERIA', label: 'Tintorería' },
             { type: 'ZAPATERIA', label: 'Zapatería' },
             { type: 'MANICURISTA', label: 'Manicurista' },
             { type: 'PEDICURISTA', label: 'Pedicurista' },
-            { type: 'TECNOLOGIA', label: 'Tecnología & WiFi' },
-            { type: 'ALQUILER_ESPACIOS', label: 'Alquiler Espacios' },
-            { type: 'ALQUILER_EQUIPOS', label: 'Alquiler Equipos' },
-            { type: 'HOUSEKEEPING', label: 'Limpieza / Mucamas' }
+            { type: 'TECNOLOGIA', label: 'Tecnología' },
+            { type: 'ALQUILER_ESPACIOS', label: 'Espacios' },
+            { type: 'ALQUILER_EQUIPOS', label: 'Equipos' },
+            { type: 'GIMNASIO', label: 'Gimnasio' },
+            { type: 'PADEL', label: 'Pádel' },
+            { type: 'GUARDERIA', label: 'Guardería' },
+            { type: 'CINE', label: 'Cine' },
+            { type: 'PISCINA', label: 'Piscina' },
+            { type: 'PLAYA', label: 'Playa' },
+            { type: 'GOLF', label: 'Golf' },
+            { type: 'LENCERIA', label: 'Lencería' },
+            { type: 'TENIS', label: 'Tenis' },
+            { type: 'SURF', label: 'Surf' },
+            { type: 'CABALLOS', label: 'Caballos' },
+            { type: 'CUATRIMOTOS', label: 'Cuatrimotos' },
+            { type: 'HELADERIA', label: 'Heladería' },
+            { type: 'BODEGON', label: 'Bodegón' },
+            { type: 'TIENDA', label: 'Tienda' },
+            { type: 'BUCEO', label: 'Buceo' },
+            { type: 'PARAPENTE', label: 'Parapente' },
+            { type: 'PESCA', label: 'Pesca' },
+            { type: 'VEHICULOS', label: 'Rústicos 4x4' },
+            { type: 'EVENTOS', label: 'Eventos' },
+            { type: 'HOUSEKEEPING', label: 'Mucamas' }
         ].map(s => `
             <div class="col-6 col-md-4">
                 <div class="form-check">
