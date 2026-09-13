@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Control y Gestión de Hotelería y Posadas en Venezuela</title>
+    <meta name="description" content="Plataforma SaaS para el control de reservas, habitaciones, consumos extras, facturación en bolívares a la tasa oficial BCV y gestión hotelera en Venezuela.">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="img/logo.png">
+    
+    <!-- Bootstrap 5.3 & Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    
+    <!-- Google Fonts - Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- App Custom Styles -->
+    <link rel="stylesheet" href="css/app.css">
+
+    <!-- jsPDF & autoTable CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+
+    <!-- Top Navigation Bar -->
+    <nav class="navbar navbar-expand-lg sticky-top navbar-custom px-3">
+        <div class="container-fluid">
+            <a class="navbar-brand d-flex align-items-center gap-2 fw-bold text-primary" href="#inicio">
+                <img src="img/logo.png" alt="Logo Hotelería SaaS" class="brand-logo">
+                <span class="d-none d-sm-inline">Hotelería Venezuela</span>
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavContent">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNavContent">
+                <!-- Dynamic Nav Menu loaded by router.js -->
+            </div>
+        </div>
+    </nav>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer"></div>
+
+    <!-- Dynamic Bootstrap Modal Container -->
+    <div class="modal fade" id="dynamicModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="dynamicModalTitle">Título</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="dynamicModalBody">
+                    <!-- Modal Body HTML -->
+                </div>
+                <div class="modal-footer border-0" id="dynamicModalFooter">
+                    <!-- Modal Footer Buttons -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LANDING PAGE PUBLIC CONTAINER -->
+    <div id="landingContainer">
+        <!-- Hero Banner -->
+        <section class="hero-section text-center">
+            <div class="container">
+                <span class="badge bg-light text-primary px-3 py-2 rounded-pill fw-semibold mb-3">
+                    <i class="bi bi-shield-check me-1"></i>Software SaaS 100% Hecho para Posadas y Hoteles en Venezuela
+                </span>
+                <h1 class="display-4 fw-extrabold mb-3">Control Total de su Hotel, Posada o Cabaña en Un Solo Lugar</h1>
+                <p class="lead max-w-2xl mx-auto mb-4 opacity-90">
+                    Gestión en tiempo real de habitaciones, reservas, consumos en restaurante/bar, facturación profesional en Bolívares convertida a la Tasa Oficial BCV y almacenamiento en la nube Cloudflare R2.
+                </p>
+                <div class="d-flex justify-content-center gap-3 flex-wrap">
+                    <button class="btn btn-light btn-lg px-4 fw-bold text-primary shadow" id="btnHeroRegister">
+                        <i class="bi bi-rocket-takeoff-fill me-2"></i>Registrar Mi Hotel (30 Días Gratis)
+                    </button>
+                    <button class="btn btn-outline-light btn-lg px-4 fw-semibold" id="btnHeroLogin">
+                        <i class="bi bi-box-arrow-in-right me-2"></i>Iniciar Sesión
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- System Key Features Section -->
+        <section class="py-5 bg-white">
+            <div class="container py-4">
+                <div class="text-center mb-5">
+                    <h2 class="fw-bold">Potencia Incomparable para la Hostelería Venezolana</h2>
+                    <p class="text-muted">Diseñado con las mejores prácticas del mercado SaaS global</p>
+                </div>
+
+                <div class="row g-4">
+                    <div class="col-md-4">
+                        <div class="card h-100 border-0 shadow-sm p-4 rounded-4">
+                            <div class="rounded-circle bg-primary bg-opacity-10 text-primary p-3 d-inline-block mb-3" style="width: fit-content;">
+                                <i class="bi bi-grid-3x3-gap-fill fs-2"></i>
+                            </div>
+                            <h4 class="fw-bold">Rack Visual e Interactivo</h4>
+                            <p class="text-muted mb-0">Tablero en cuadrícula con estados en vivo: Disponible 🟢, Ocupado 🔴, En Limpieza por Mucamas 🟡 y Mantenimiento 🟠. Prevención automática de sobreventa.</p>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="card h-100 border-0 shadow-sm p-4 rounded-4">
+                            <div class="rounded-circle bg-success bg-opacity-10 text-success p-3 d-inline-block mb-3" style="width: fit-content;">
+                                <i class="bi bi-currency-exchange fs-2"></i>
+                            </div>
+                            <h4 class="fw-bold">Facturación & Tasa BCV</h4>
+                            <p class="text-muted mb-0">Generación de comprobantes y recibos de hospedaje en PDF con conversión automática a Bolívares (VES) usando la API de la Tasa Oficial BCV en tiempo real.</p>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="card h-100 border-0 shadow-sm p-4 rounded-4">
+                            <div class="rounded-circle bg-warning bg-opacity-10 text-warning p-3 d-inline-block mb-3" style="width: fit-content;">
+                                <i class="bi bi-cloud-arrow-up-fill fs-2"></i>
+                            </div>
+                            <h4 class="fw-bold">Cloudflare R2 & Turso DB</h4>
+                            <p class="text-muted mb-0">Subida directa de logotipos y comprobantes mediante URLs prefirmadas de Cloudflare R2 sin saturar el servidor y con base de datos libSQL ultra rápida.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Hotels Carousel & Visitor Rating Section -->
+        <section class="py-5">
+            <div class="container py-4">
+                <div class="text-center mb-5">
+                    <h2 class="fw-bold"><i class="bi bi-stars text-warning me-2"></i>Hoteles & Posadas Destacadas</h2>
+                    <p class="text-muted">Establecimientos que confían en nuestro sistema. ¡Valora tu experiencia de estadía!</p>
+                </div>
+
+                <div class="row g-4" id="landingHotelCarouselContainer">
+                    <div class="text-center py-4 text-muted"><div class="spinner-border text-primary"></div><p>Cargando posadas afiliadas...</p></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="bg-dark text-light py-4 border-top border-secondary">
+            <div class="container text-center">
+                <p class="mb-2">&copy; 2026 Sistema SaaS de Control y Gestión de Hotelería y Posadas en Venezuela. Todos los derechos reservados.</p>
+                <div class="small">
+                    <a href="/terms" class="text-light me-3 text-decoration-none">Términos y Condiciones</a>
+                    <a href="/privacy" class="text-light me-3 text-decoration-none">Política de Privacidad</a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- MAIN SPA APP VIEW CONTAINER (Loaded dynamically by Router) -->
+    <main class="container py-4 d-none" id="mainContentContainer">
+        <!-- Views rendered here -->
+    </main>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Application ES Modules -->
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
