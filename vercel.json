@@ -1,7 +1,35 @@
 {
   "version": 2,
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/api/auth/(.*)", "destination": "/api/auth.js" },
+    { "source": "/api/auth", "destination": "/api/auth.js" },
+
+    { "source": "/api/hotels/(.*)", "destination": "/api/hotels.js" },
+    { "source": "/api/hotels", "destination": "/api/hotels.js" },
+
+    { "source": "/api/rooms/(.*)", "destination": "/api/ops.js" },
+    { "source": "/api/rooms", "destination": "/api/ops.js" },
+    { "source": "/api/bookings/(.*)", "destination": "/api/ops.js" },
+    { "source": "/api/bookings", "destination": "/api/ops.js" },
+    { "source": "/api/guests/(.*)", "destination": "/api/ops.js" },
+    { "source": "/api/guests", "destination": "/api/ops.js" },
+    { "source": "/api/expenses/(.*)", "destination": "/api/ops.js" },
+    { "source": "/api/expenses", "destination": "/api/ops.js" },
+    { "source": "/api/departments/(.*)", "destination": "/api/ops.js" },
+    { "source": "/api/departments", "destination": "/api/ops.js" },
+
+    { "source": "/api/billing/(.*)", "destination": "/api/billing.js" },
+    { "source": "/api/billing", "destination": "/api/billing.js" },
+
+    { "source": "/api/admin/(.*)", "destination": "/api/admin.js" },
+    { "source": "/api/admin", "destination": "/api/admin.js" },
+
+    { "source": "/api/storage/(.*)", "destination": "/api/storage.js" },
+    { "source": "/api/storage", "destination": "/api/storage.js" },
+
+    { "source": "/api/ratings/(.*)", "destination": "/api/ratings.js" },
+    { "source": "/api/ratings", "destination": "/api/ratings.js" },
+
     { "source": "/privacy", "destination": "/privacy/index.html" },
     { "source": "/terms", "destination": "/terms/index.html" },
     { "source": "/((?!api|privacy|terms|.*\\..*).*)", "destination": "/index.html" }

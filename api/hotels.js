@@ -1,5 +1,5 @@
-import { db, initDB } from '../_lib/turso.js';
-import { requireAuth } from '../_lib/auth.js';
+import { db, initDB } from './_lib/turso.js';
+import { requireAuth } from './_lib/auth.js';
 
 export default async function handler(req, res) {
     const auth = requireAuth(req, res);

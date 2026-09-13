@@ -1,4 +1,4 @@
-import { db, initDB } from '../_lib/turso.js';
+import { db, initDB } from './_lib/turso.js';
 
 export default async function handler(req, res) {
     await initDB();
@@ -15,20 +15,18 @@ export default async function handler(req, res) {
                 GROUP BY h.id
                 ORDER BY avg_rating DESC
             `);
-
             return res.status(200).json(hotelsRes.rows);
         } catch (err) {
             console.error('Fetch ratings error:', err);
-            return res.status(500).json({ error: 'Error al consultar valoraciones de hoteles.' });
+            return res.status(500).json({ error: 'Error al consultar valoraciones.' });
         }
     }
 
     if (req.method === 'POST') {
         try {
             const { hotelId, rating, comment, reviewerName } = req.body || {};
-
             if (!hotelId || !rating || rating < 1 || rating > 5) {
-                return res.status(400).json({ error: 'Hotel y calificación (1 a 5) son requeridos.' });
+                return res.status(400).json({ error: 'Hotel y calificación válidos son requeridos.' });
             }
 
             const ratingId = 'rtg_' + Date.now();

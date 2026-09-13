@@ -1,7 +1,7 @@
-import { s3Client, R2_BUCKET_NAME, R2_PUBLIC_URL } from '../_lib/s3.js';
+import { s3Client, R2_BUCKET_NAME, R2_PUBLIC_URL } from './_lib/s3.js';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { requireAuth } from '../_lib/auth.js';
+import { requireAuth } from './_lib/auth.js';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -23,7 +23,6 @@ export default async function handler(req, res) {
             ContentType: mimeType
         });
 
-        // 15-minute expiration
         const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 900 });
         const publicUrl = `${R2_PUBLIC_URL}/${destinationPath}`;
 
