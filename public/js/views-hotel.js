@@ -205,13 +205,13 @@ export const ViewsHotel = {
             container.innerHTML = html;
 
             // Bind Action Listeners
-            this.bindRackEvents(container, types);
+            this.bindRackEvents(container, rooms, types);
         } catch (err) {
             container.innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
         }
     },
 
-    bindRackEvents(container, types) {
+    bindRackEvents(container, rooms, types) {
         // Quick Cleaning View Button
         const btnCleaning = container.querySelector('#btnQuickCleaningView');
         if (btnCleaning) {
@@ -253,7 +253,13 @@ export const ViewsHotel = {
         // Create Room Type & Management Modal
         const btnCreateType = container.querySelector('#btnCreateRoomType');
         if (btnCreateType) {
-            btnCreateType.onclick = () => {
+            btnCreateType.onclick = async () => {
+                let currentTypes = types;
+                try {
+                    const data = await API.get('/rooms');
+                    currentTypes = data.roomTypes || [];
+                } catch (e) {}
+
                 const renderRoomTypeModal = () => {
                     UI.showModal({
                         title: 'Gestión & Creación de Estilos / Tipos de Habitación',
@@ -282,8 +288,8 @@ export const ViewsHotel = {
                             </div>
 
                             <div>
-                                <h6 class="fw-bold text-dark mb-2"><i class="bi bi-tags-fill me-1 text-primary"></i>Estilos Registrados (${types.length})</h6>
-                                ${types.length === 0 ? `
+                                <h6 class="fw-bold text-dark mb-2"><i class="bi bi-tags-fill me-1 text-primary"></i>Estilos Registrados (${currentTypes.length})</h6>
+                                ${currentTypes.length === 0 ? `
                                     <p class="text-muted small text-center py-3">No hay estilos registrados aún.</p>
                                 ` : `
                                     <div class="table-responsive border rounded custom-scroll" style="max-height: 220px; overflow-y: auto;">
@@ -297,7 +303,7 @@ export const ViewsHotel = {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                ${types.map(t => `
+                                                ${currentTypes.map(t => `
                                                     <tr>
                                                         <td class="fw-bold text-dark">${t.name}</td>
                                                         <td class="fw-bold text-primary">$${Number(t.base_price_usd).toFixed(2)} USD</td>
@@ -350,7 +356,7 @@ export const ViewsHotel = {
                     modalEl.querySelectorAll('.btn-edit-room-type').forEach(btn => {
                         btn.onclick = () => {
                             const typeId = btn.dataset.id;
-                            const targetType = types.find(t => t.id === typeId);
+                            const targetType = currentTypes.find(t => t.id === typeId);
                             if (!targetType) return;
 
                             UI.showModal({
@@ -419,8 +425,16 @@ export const ViewsHotel = {
         // Create Room & Management Modal
         const btnCreateRoom = container.querySelector('#btnCreateRoom');
         if (btnCreateRoom) {
-            btnCreateRoom.onclick = () => {
-                let typeOptions = types.map(t => `<option value="${t.id}">${t.name} ($${t.base_price_usd}/noche)</option>`).join('');
+            btnCreateRoom.onclick = async () => {
+                let currentRooms = rooms;
+                let currentTypes = types;
+                try {
+                    const data = await API.get('/rooms');
+                    currentRooms = data.rooms || [];
+                    currentTypes = data.roomTypes || [];
+                } catch (e) {}
+
+                let typeOptions = currentTypes.map(t => `<option value="${t.id}">${t.name} ($${t.base_price_usd}/noche)</option>`).join('');
 
                 const renderRoomManageModal = () => {
                     UI.showModal({
@@ -437,7 +451,7 @@ export const ViewsHotel = {
                                         <div class="col-6">
                                             <label class="form-label fw-semibold">Tipo / Estilo</label>
                                             <select class="form-select" id="rmType" required>
-                                                ${typeOptions}
+                                                ${typeOptions || '<option value="">Sin tipos de habitación registrados</option>'}
                                             </select>
                                         </div>
                                     </div>
@@ -462,8 +476,8 @@ export const ViewsHotel = {
                             </div>
 
                             <div>
-                                <h6 class="fw-bold text-dark mb-2"><i class="bi bi-grid-3x3-gap-fill me-1 text-primary"></i>Habitaciones Registradas en el Rack (${rooms.length})</h6>
-                                ${rooms.length === 0 ? `
+                                <h6 class="fw-bold text-dark mb-2"><i class="bi bi-grid-3x3-gap-fill me-1 text-primary"></i>Habitaciones Registradas en el Rack (${currentRooms.length})</h6>
+                                ${currentRooms.length === 0 ? `
                                     <p class="text-muted small text-center py-3">No hay habitaciones registradas en este hotel.</p>
                                 ` : `
                                     <div class="table-responsive border rounded custom-scroll" style="max-height: 230px; overflow-y: auto;">
@@ -478,7 +492,7 @@ export const ViewsHotel = {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                ${rooms.map(r => {
+                                                ${currentRooms.map(r => {
                                                     let statusBadge = '';
                                                     if (r.status === 'AVAILABLE') {
                                                         statusBadge = `<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle me-1"></i>Disponible</span>`;
@@ -570,10 +584,10 @@ export const ViewsHotel = {
                     modalEl.querySelectorAll('.btn-edit-room').forEach(btn => {
                         btn.onclick = () => {
                             const roomId = btn.dataset.id;
-                            const room = rooms.find(r => r.id === roomId);
+                            const room = currentRooms.find(r => r.id === roomId);
                             if (!room) return;
 
-                            let editTypeOptions = types.map(t => `<option value="${t.id}" ${t.id === room.room_type_id ? 'selected' : ''}>${t.name} ($${t.base_price_usd}/noche)</option>`).join('');
+                            let editTypeOptions = currentTypes.map(t => `<option value="${t.id}" ${t.id === room.room_type_id ? 'selected' : ''}>${t.name} ($${t.base_price_usd}/noche)</option>`).join('');
 
                             UI.showModal({
                                 title: `Editar Habitación N° ${room.room_number}`,
