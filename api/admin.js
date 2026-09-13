@@ -68,13 +68,13 @@ export default async function handler(req, res) {
             const { monthlyFeeUsd, trialDays } = req.body || {};
             if (monthlyFeeUsd !== undefined) {
                 await db.execute({
-                    sql: 'INSERT INTO saas_settings (key, value) VALUES ("monthly_fee_usd", ?) ON CONFLICT(key) DO UPDATE SET value = ?',
+                    sql: "INSERT INTO saas_settings (key, value) VALUES ('monthly_fee_usd', ?) ON CONFLICT(key) DO UPDATE SET value = ?",
                     args: [String(monthlyFeeUsd), String(monthlyFeeUsd)]
                 });
             }
             if (trialDays !== undefined) {
                 await db.execute({
-                    sql: 'INSERT INTO saas_settings (key, value) VALUES ("trial_days", ?) ON CONFLICT(key) DO UPDATE SET value = ?',
+                    sql: "INSERT INTO saas_settings (key, value) VALUES ('trial_days', ?) ON CONFLICT(key) DO UPDATE SET value = ?",
                     args: [String(trialDays), String(trialDays)]
                 });
             }
@@ -137,7 +137,7 @@ export default async function handler(req, res) {
                 const newDueDate = new Date();
                 newDueDate.setDate(newDueDate.getDate() + 30);
                 await db.execute({
-                    sql: 'UPDATE hotels SET status = "ACTIVE", subscription_due_date = ? WHERE id = ?',
+                    sql: "UPDATE hotels SET status = 'ACTIVE', subscription_due_date = ? WHERE id = ?",
                     args: [newDueDate.toISOString(), payment.hotel_id]
                 });
             }

@@ -196,6 +196,31 @@ export async function initDB() {
             );
         `);
 
+        await db.execute(`
+            CREATE TABLE IF NOT EXISTS hotel_catalog_items (
+                id TEXT PRIMARY KEY,
+                hotel_id TEXT NOT NULL REFERENCES hotels(id),
+                department_type TEXT NOT NULL,
+                department_id TEXT,
+                name TEXT NOT NULL,
+                description TEXT,
+                price_usd REAL NOT NULL,
+                is_available INTEGER DEFAULT 1,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+
+        await db.execute(`
+            CREATE TABLE IF NOT EXISTS staff_permissions (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL REFERENCES users(id),
+                hotel_id TEXT NOT NULL REFERENCES hotels(id),
+                department_type TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, department_type)
+            );
+        `);
+
         // Seed 31 Official Venezuelan Banks
         const bankCheck = await db.execute('SELECT COUNT(*) as cnt FROM banks');
         if (Number(bankCheck.rows[0].cnt) === 0) {

@@ -84,12 +84,12 @@ export default async function handler(req, res) {
             const nowIso = new Date().toISOString();
 
             await db.execute({
-                sql: 'UPDATE bookings SET status = "CHECKED_OUT", actual_check_out = ? WHERE id = ? AND hotel_id = ?',
+                sql: "UPDATE bookings SET status = 'CHECKED_OUT', actual_check_out = ? WHERE id = ? AND hotel_id = ?",
                 args: [nowIso, bookingId, hotelId]
             });
 
             await db.execute({
-                sql: 'UPDATE rooms SET status = "CLEANING", notes = "Habitación en limpieza tras Check-out de " || ? WHERE id = ? AND hotel_id = ?',
+                sql: "UPDATE rooms SET status = 'CLEANING', notes = 'Habitación en limpieza tras Check-out de ' || ? WHERE id = ? AND hotel_id = ?",
                 args: [booking.guest_name, booking.room_id, hotelId]
             });
 
@@ -214,11 +214,28 @@ export default async function handler(req, res) {
                       ORDER BY u.name ASC`,
                 args: [hotelId]
             });
-            return res.status(200).json({ departments: deptsRes.rows, staff: staffRes.rows });
+
+            const permsRes = await db.execute({
+                sql: 'SELECT user_id, department_type FROM staff_permissions WHERE hotel_id = ?',
+                args: [hotelId]
+            });
+
+            const permsMap = {};
+            for (const r of permsRes.rows) {
+                if (!permsMap[r.user_id]) permsMap[r.user_id] = [];
+                permsMap[r.user_id].push(r.department_type);
+            }
+
+            const staffWithPerms = staffRes.rows.map(s => ({
+                ...s,
+                permissions: permsMap[s.id] || []
+            }));
+
+            return res.status(200).json({ departments: deptsRes.rows, staff: staffWithPerms });
         }
 
         if (req.method === 'POST') {
-            const { action, name, type, staffName, staffEmail, staffPassword, staffPhone, departmentId } = req.body || {};
+            const { action, name, type, staffName, staffEmail, staffPassword, staffPhone, departmentId, permissions } = req.body || {};
             if (action === 'create_staff') {
                 if (!staffName || !staffEmail || !staffPassword) return res.status(400).json({ error: 'Nombre, correo y contraseña son requeridos.' });
 
@@ -228,6 +245,19 @@ export default async function handler(req, res) {
                     sql: 'INSERT INTO users (id, name, email, password_hash, role, phone, department_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
                     args: [staffId, staffName, staffEmail, pwdHash, 'HOTEL_STAFF', staffPhone || '', departmentId || null]
                 });
+
+                if (Array.isArray(permissions)) {
+                    for (const pType of permissions) {
+                        if (pType) {
+                            const pId = 'perm_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
+                            await db.execute({
+                                sql: 'INSERT INTO staff_permissions (id, user_id, hotel_id, department_type) VALUES (?, ?, ?, ?) ON CONFLICT(user_id, department_type) DO NOTHING',
+                                args: [pId, staffId, hotelId, pType]
+                            });
+                        }
+                    }
+                }
+
                 return res.status(201).json({ message: 'Usuario de personal creado.', id: staffId });
             }
 
@@ -241,7 +271,7 @@ export default async function handler(req, res) {
         }
 
         if (req.method === 'PUT') {
-            const { action, deptId, name, type, is_active, staffId, staffName, staffEmail, staffPhone, departmentId, newPassword } = req.body || {};
+            const { action, deptId, name, type, is_active, staffId, staffName, staffEmail, staffPhone, departmentId, newPassword, permissions } = req.body || {};
 
             if (action === 'update_staff') {
                 if (!staffId || !staffName || !staffEmail) return res.status(400).json({ error: 'staffId, nombre y correo son requeridos.' });
@@ -258,6 +288,20 @@ export default async function handler(req, res) {
                         args: [staffName, staffEmail, staffPhone || '', departmentId || null, staffId]
                     });
                 }
+
+                if (Array.isArray(permissions)) {
+                    await db.execute({ sql: 'DELETE FROM staff_permissions WHERE user_id = ? AND hotel_id = ?', args: [staffId, hotelId] });
+                    for (const pType of permissions) {
+                        if (pType) {
+                            const pId = 'perm_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
+                            await db.execute({
+                                sql: 'INSERT INTO staff_permissions (id, user_id, hotel_id, department_type) VALUES (?, ?, ?, ?) ON CONFLICT(user_id, department_type) DO NOTHING',
+                                args: [pId, staffId, hotelId, pType]
+                            });
+                        }
+                    }
+                }
+
                 return res.status(200).json({ message: 'Usuario de personal actualizado exitosamente.' });
             }
 
@@ -268,6 +312,79 @@ export default async function handler(req, res) {
                 args: [name, type || 'OTHER', is_active !== undefined ? (is_active ? 1 : 0) : 1, deptId, hotelId]
             });
             return res.status(200).json({ message: 'Área/departamento actualizada exitosamente.' });
+        }
+    }
+
+    // Route: Catalog & POS Charge
+    if (urlPath.includes('/catalog')) {
+        if (urlPath.includes('/catalog/charge') && req.method === 'POST') {
+            const { bookingId, itemId, quantity, notes } = req.body || {};
+            if (!bookingId || !itemId) return res.status(400).json({ error: 'Reserva e Ítem son requeridos.' });
+
+            const itemRes = await db.execute({
+                sql: 'SELECT * FROM hotel_catalog_items WHERE id = ? AND hotel_id = ?',
+                args: [itemId, hotelId]
+            });
+            if (itemRes.rows.length === 0) return res.status(404).json({ error: 'Ítem no encontrado en el catálogo.' });
+
+            const item = itemRes.rows[0];
+            const qty = Math.max(1, parseInt(quantity) || 1);
+            const totalAmount = item.price_usd * qty;
+            const desc = `[${item.department_type}] ${qty}x ${item.name} ($${Number(item.price_usd).toFixed(2)} c/u)${notes ? ` - ${notes}` : ''}`;
+            const expenseId = 'exp_' + Date.now();
+
+            await db.execute({
+                sql: `INSERT INTO guest_expenses 
+                (id, hotel_id, booking_id, department_id, staff_user_id, description, amount_usd)
+                VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                args: [expenseId, hotelId, bookingId, item.department_id || null, auth.userId, desc, totalAmount]
+            });
+
+            return res.status(201).json({ message: `Cargado a habitación: ${desc}`, expenseId });
+        }
+
+        if (req.method === 'GET') {
+            const typeFilter = req.query.type;
+            let sql = 'SELECT * FROM hotel_catalog_items WHERE hotel_id = ?';
+            let args = [hotelId];
+            if (typeFilter) {
+                sql += ' AND department_type = ?';
+                args.push(typeFilter);
+            }
+            sql += ' ORDER BY name ASC';
+            const catRes = await db.execute({ sql, args });
+            return res.status(200).json(catRes.rows);
+        }
+
+        if (req.method === 'POST') {
+            const { name, description, priceUsd, departmentType, departmentId } = req.body || {};
+            if (!name || priceUsd === undefined || !departmentType) return res.status(400).json({ error: 'Nombre, precio y departamento son requeridos.' });
+
+            const itemId = 'cat_' + Date.now();
+            await db.execute({
+                sql: `INSERT INTO hotel_catalog_items (id, hotel_id, department_type, department_id, name, description, price_usd)
+                      VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                args: [itemId, hotelId, departmentType, departmentId || null, name, description || '', parseFloat(priceUsd)]
+            });
+            return res.status(201).json({ message: 'Ítem de catálogo agregado exitosamente.', id: itemId });
+        }
+
+        if (req.method === 'PUT') {
+            const { itemId, name, description, priceUsd, isAvailable } = req.body || {};
+            if (!itemId || !name || priceUsd === undefined) return res.status(400).json({ error: 'itemId, nombre y precio son requeridos.' });
+
+            await db.execute({
+                sql: 'UPDATE hotel_catalog_items SET name = ?, description = ?, price_usd = ?, is_available = ? WHERE id = ? AND hotel_id = ?',
+                args: [name, description || '', parseFloat(priceUsd), isAvailable !== undefined ? (isAvailable ? 1 : 0) : 1, itemId, hotelId]
+            });
+            return res.status(200).json({ message: 'Ítem del catálogo actualizado.' });
+        }
+
+        if (req.method === 'DELETE') {
+            const itemId = req.query.id;
+            if (!itemId) return res.status(400).json({ error: 'itemId es requerido.' });
+            await db.execute({ sql: 'DELETE FROM hotel_catalog_items WHERE id = ? AND hotel_id = ?', args: [itemId, hotelId] });
+            return res.status(200).json({ message: 'Ítem eliminado.' });
         }
     }
 

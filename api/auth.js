@@ -137,6 +137,15 @@ export default async function handler(req, res) {
             }
         }
 
+        let permissions = [];
+        if (user.role === 'HOTEL_STAFF') {
+            const pRes = await db.execute({
+                sql: 'SELECT department_type FROM staff_permissions WHERE user_id = ?',
+                args: [user.id]
+            });
+            permissions = pRes.rows.map(r => r.department_type);
+        }
+
         const tokenPayload = {
             userId: user.id,
             name: user.name,
@@ -156,7 +165,8 @@ export default async function handler(req, res) {
                 email: user.email,
                 role: user.role,
                 phone: user.phone,
-                departmentId: user.department_id
+                departmentId: user.department_id,
+                permissions
             },
             hotel
         });

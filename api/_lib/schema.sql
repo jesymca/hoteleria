@@ -167,3 +167,27 @@ CREATE TABLE IF NOT EXISTS hotel_ratings (
     reviewer_name TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
+-- 15. Catálogo de Productos y Servicios por Departamento/Área (Restaurante, Bar, Spa, Peluquería, Taxis, Lanchas, etc.)
+CREATE TABLE IF NOT EXISTS hotel_catalog_items (
+    id TEXT PRIMARY KEY,
+    hotel_id TEXT NOT NULL REFERENCES hotels(id),
+    department_type TEXT NOT NULL,
+    department_id TEXT,
+    name TEXT NOT NULL,
+    description TEXT,
+    price_usd REAL NOT NULL,
+    is_available INTEGER DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 16. Permisos Granulares de Staff por Departamento/Tipo de Servicio
+CREATE TABLE IF NOT EXISTS staff_permissions (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id),
+    hotel_id TEXT NOT NULL REFERENCES hotels(id),
+    department_type TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, department_type)
+);
+

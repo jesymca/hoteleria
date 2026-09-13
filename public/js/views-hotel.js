@@ -965,26 +965,36 @@ export const ViewsHotel = {
                     return;
                 }
 
-                staffListContainer.innerHTML = filteredStaff.map(s => `
-                    <div class="list-group-item d-flex justify-content-between align-items-center px-2 py-3 border-bottom">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="avatar-circle bg-primary-subtle text-primary fw-bold rounded-circle d-flex align-items-center justify-content-center" style="width: 42px; height: 42px; font-size: 1.1rem;">
-                                ${(s.name || 'U').charAt(0).toUpperCase()}
-                            </div>
-                            <div>
-                                <div class="fw-bold text-dark mb-0">${s.name}</div>
-                                <div class="small text-muted mb-1">
-                                    <i class="bi bi-envelope me-1"></i>${s.email}
-                                    ${s.phone ? `<span class="ms-2"><i class="bi bi-whatsapp me-1 text-success"></i>${s.phone}</span>` : ''}
+                staffListContainer.innerHTML = filteredStaff.map(s => {
+                    const userPerms = s.permissions || [];
+                    const permBadges = userPerms.map(p => `<span class="badge bg-primary-subtle text-primary border border-primary-subtle fs-8 me-1 mb-1">${p}</span>`).join('');
+
+                    return `
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-2 py-3 border-bottom">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="avatar-circle bg-primary-subtle text-primary fw-bold rounded-circle d-flex align-items-center justify-content-center" style="width: 42px; height: 42px; font-size: 1.1rem;">
+                                    ${(s.name || 'U').charAt(0).toUpperCase()}
                                 </div>
-                                <span class="badge bg-info text-dark">${s.department_name || 'Sin área fija (General)'}</span>
+                                <div>
+                                    <div class="fw-bold text-dark mb-0">${s.name}</div>
+                                    <div class="small text-muted mb-1">
+                                        <i class="bi bi-envelope me-1"></i>${s.email}
+                                        ${s.phone ? `<span class="ms-2"><i class="bi bi-whatsapp me-1 text-success"></i>${s.phone}</span>` : ''}
+                                    </div>
+                                    <div class="mb-1">
+                                        <span class="badge bg-info text-dark me-1">${s.department_name || 'Sin área fija (General)'}</span>
+                                    </div>
+                                    <div class="d-flex flex-wrap align-items-center mt-1">
+                                        ${permBadges || '<span class="text-muted small">Sin servicios asignados</span>'}
+                                    </div>
+                                </div>
                             </div>
+                            <button class="btn btn-sm btn-outline-primary btn-edit-staff px-2" data-id="${s.id}" title="Editar usuario staff">
+                                <i class="bi bi-pencil-fill me-1"></i>Editar
+                            </button>
                         </div>
-                        <button class="btn btn-sm btn-outline-primary btn-edit-staff px-2" data-id="${s.id}" title="Editar usuario staff">
-                            <i class="bi bi-pencil-fill me-1"></i>Editar
-                        </button>
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
 
                 // Bind click events for staff edits
                 staffListContainer.querySelectorAll('.btn-edit-staff').forEach(btn => {
@@ -1044,8 +1054,19 @@ export const ViewsHotel = {
                                     <option value="RESTAURANT">Restaurante / Comedor</option>
                                     <option value="BAR">Bar / Coctelería</option>
                                     <option value="HOUSEKEEPING">Limpieza / Mucamas</option>
-                                    <option value="SPA">Spa / Peluquería</option>
-                                    <option value="EXCURSION">Excursiones / Turismo</option>
+                                    <option value="SPA">Spa & Masajes</option>
+                                    <option value="PELUQUERIA">Peluquería & Barbería</option>
+                                    <option value="GALERIA">Galería & Arte</option>
+                                    <option value="GUIA_TURISTICA">Guía Turística & Tours</option>
+                                    <option value="TAXIS">Servicio de Taxis</option>
+                                    <option value="LANCHAS">Viajes en Lancha</option>
+                                    <option value="TINTORERIA">Tintorería & Lavandería</option>
+                                    <option value="ZAPATERIA">Zapatería & Calzado</option>
+                                    <option value="MANICURISTA">Manicurista</option>
+                                    <option value="PEDICURISTA">Pedicurista</option>
+                                    <option value="TECNOLOGIA">Servicios de Tecnología & WiFi</option>
+                                    <option value="ALQUILER_ESPACIOS">Alquiler de Espacios del Hotel</option>
+                                    <option value="ALQUILER_EQUIPOS">Alquiler de Equipos Tecnológicos</option>
                                     <option value="OTHER">Otro Servicio Especial</option>
                                 </select>
                             </div>
@@ -1079,17 +1100,43 @@ export const ViewsHotel = {
             // Modal Create Staff
             container.querySelector('#btnCreateStaff').onclick = () => {
                 let deptOptions = depts.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+                const serviceCheckboxes = [
+                    { type: 'RESTAURANT', label: 'Restaurante / Comedor' },
+                    { type: 'BAR', label: 'Bar / Coctelería' },
+                    { type: 'SPA', label: 'Spa & Masajes' },
+                    { type: 'PELUQUERIA', label: 'Peluquería & Barbería' },
+                    { type: 'GALERIA', label: 'Galería & Arte' },
+                    { type: 'GUIA_TURISTICA', label: 'Guía Turística & Tours' },
+                    { type: 'TAXIS', label: 'Servicio de Taxis' },
+                    { type: 'LANCHAS', label: 'Viajes en Lancha' },
+                    { type: 'TINTORERIA', label: 'Tintorería' },
+                    { type: 'ZAPATERIA', label: 'Zapatería' },
+                    { type: 'MANICURISTA', label: 'Manicurista' },
+                    { type: 'PEDICURISTA', label: 'Pedicurista' },
+                    { type: 'TECNOLOGIA', label: 'Tecnología & WiFi' },
+                    { type: 'ALQUILER_ESPACIOS', label: 'Alquiler Espacios' },
+                    { type: 'ALQUILER_EQUIPOS', label: 'Alquiler Equipos' },
+                    { type: 'HOUSEKEEPING', label: 'Limpieza / Mucamas' }
+                ].map(s => `
+                    <div class="col-6 col-md-4">
+                        <div class="form-check">
+                            <input class="form-check-input chk-perm" type="checkbox" value="${s.type}" id="perm_${s.type}">
+                            <label class="form-check-label small" for="perm_${s.type}">${s.label}</label>
+                        </div>
+                    </div>
+                `).join('');
+
                 UI.showModal({
                     title: 'Crear Usuario de Personal (Staff)',
                     bodyHtml: `
                         <form id="formStaff">
                             <div class="mb-3">
                                 <label class="form-label">Nombre Completo</label>
-                                <input type="text" class="form-control" id="stName" placeholder="Ej: María Pérez (Mucama), Juan Barman" required>
+                                <input type="text" class="form-control" id="stName" placeholder="Ej: María Pérez, Juan Barman" required>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Correo Electrónico (Para Login)</label>
-                                <input type="email" class="form-control" id="stEmail" placeholder="mucama@posada.com" required>
+                                <input type="email" class="form-control" id="stEmail" placeholder="personal@posada.com" required>
                             </div>
                             <div class="row g-2 mb-3">
                                 <div class="col-6">
@@ -1102,11 +1149,17 @@ export const ViewsHotel = {
                                 </div>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Área / Departamento Asignado</label>
+                                <label class="form-label">Área Principal</label>
                                 <select class="form-select" id="stDept">
                                     <option value="">Recepción / General</option>
                                     ${deptOptions}
                                 </select>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label fw-bold text-primary">Servicios Permitidos (Acceso a POS / Gestión)</label>
+                                <div class="row g-2 p-2 bg-light rounded border">
+                                    ${serviceCheckboxes}
+                                </div>
                             </div>
                         </form>
                     `,
@@ -1122,6 +1175,7 @@ export const ViewsHotel = {
                     const staffPhone = document.getElementById('stPhone').value;
                     const staffPassword = document.getElementById('stPassword').value;
                     const departmentId = document.getElementById('stDept').value;
+                    const permissions = Array.from(document.querySelectorAll('.chk-perm:checked')).map(cb => cb.value);
 
                     if (!staffName || !staffEmail || !staffPassword) {
                         UI.showToast('Debe ingresar nombre, correo y contraseña.', 'warning');
@@ -1135,9 +1189,10 @@ export const ViewsHotel = {
                             staffEmail,
                             staffPhone,
                             staffPassword,
-                            departmentId
+                            departmentId,
+                            permissions
                         });
-                        UI.showToast('Usuario de personal creado exitosamente.', 'success');
+                        UI.showToast('Usuario de personal creado exitosamente con sus permisos.', 'success');
                         bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
                         this.renderAreas(container);
                     } catch (e) {
@@ -1165,8 +1220,19 @@ export const ViewsHotel = {
                             <option value="RESTAURANT" ${dept.type === 'RESTAURANT' ? 'selected' : ''}>Restaurante / Comedor</option>
                             <option value="BAR" ${dept.type === 'BAR' ? 'selected' : ''}>Bar / Coctelería</option>
                             <option value="HOUSEKEEPING" ${dept.type === 'HOUSEKEEPING' ? 'selected' : ''}>Limpieza / Mucamas</option>
-                            <option value="SPA" ${dept.type === 'SPA' ? 'selected' : ''}>Spa / Peluquería</option>
-                            <option value="EXCURSION" ${dept.type === 'EXCURSION' ? 'selected' : ''}>Excursiones / Turismo</option>
+                            <option value="SPA" ${dept.type === 'SPA' ? 'selected' : ''}>Spa & Masajes</option>
+                            <option value="PELUQUERIA" ${dept.type === 'PELUQUERIA' ? 'selected' : ''}>Peluquería & Barbería</option>
+                            <option value="GALERIA" ${dept.type === 'GALERIA' ? 'selected' : ''}>Galería & Arte</option>
+                            <option value="GUIA_TURISTICA" ${dept.type === 'GUIA_TURISTICA' ? 'selected' : ''}>Guía Turística & Tours</option>
+                            <option value="TAXIS" ${dept.type === 'TAXIS' ? 'selected' : ''}>Servicio de Taxis</option>
+                            <option value="LANCHAS" ${dept.type === 'LANCHAS' ? 'selected' : ''}>Viajes en Lancha</option>
+                            <option value="TINTORERIA" ${dept.type === 'TINTORERIA' ? 'selected' : ''}>Tintorería & Lavandería</option>
+                            <option value="ZAPATERIA" ${dept.type === 'ZAPATERIA' ? 'selected' : ''}>Zapatería & Calzado</option>
+                            <option value="MANICURISTA" ${dept.type === 'MANICURISTA' ? 'selected' : ''}>Manicurista</option>
+                            <option value="PEDICURISTA" ${dept.type === 'PEDICURISTA' ? 'selected' : ''}>Pedicurista</option>
+                            <option value="TECNOLOGIA" ${dept.type === 'TECNOLOGIA' ? 'selected' : ''}>Servicios de Tecnología & WiFi</option>
+                            <option value="ALQUILER_ESPACIOS" ${dept.type === 'ALQUILER_ESPACIOS' ? 'selected' : ''}>Alquiler de Espacios del Hotel</option>
+                            <option value="ALQUILER_EQUIPOS" ${dept.type === 'ALQUILER_EQUIPOS' ? 'selected' : ''}>Alquiler de Equipos Tecnológicos</option>
                             <option value="OTHER" ${dept.type === 'OTHER' ? 'selected' : ''}>Otro Servicio Especial</option>
                         </select>
                     </div>
@@ -1206,6 +1272,33 @@ export const ViewsHotel = {
     showEditStaffModal(container, staffMember, depts) {
         let deptOptions = depts.map(d => `<option value="${d.id}" ${d.id === staffMember.department_id ? 'selected' : ''}>${d.name}</option>`).join('');
 
+        const currentPerms = staffMember.permissions || [];
+        const serviceCheckboxes = [
+            { type: 'RESTAURANT', label: 'Restaurante / Comedor' },
+            { type: 'BAR', label: 'Bar / Coctelería' },
+            { type: 'SPA', label: 'Spa & Masajes' },
+            { type: 'PELUQUERIA', label: 'Peluquería & Barbería' },
+            { type: 'GALERIA', label: 'Galería & Arte' },
+            { type: 'GUIA_TURISTICA', label: 'Guía Turística & Tours' },
+            { type: 'TAXIS', label: 'Servicio de Taxis' },
+            { type: 'LANCHAS', label: 'Viajes en Lancha' },
+            { type: 'TINTORERIA', label: 'Tintorería' },
+            { type: 'ZAPATERIA', label: 'Zapatería' },
+            { type: 'MANICURISTA', label: 'Manicurista' },
+            { type: 'PEDICURISTA', label: 'Pedicurista' },
+            { type: 'TECNOLOGIA', label: 'Tecnología & WiFi' },
+            { type: 'ALQUILER_ESPACIOS', label: 'Alquiler Espacios' },
+            { type: 'ALQUILER_EQUIPOS', label: 'Alquiler Equipos' },
+            { type: 'HOUSEKEEPING', label: 'Limpieza / Mucamas' }
+        ].map(s => `
+            <div class="col-6 col-md-4">
+                <div class="form-check">
+                    <input class="form-check-input chk-edit-perm" type="checkbox" value="${s.type}" id="edit_perm_${s.type}" ${currentPerms.includes(s.type) ? 'checked' : ''}>
+                    <label class="form-check-label small" for="edit_perm_${s.type}">${s.label}</label>
+                </div>
+            </div>
+        `).join('');
+
         UI.showModal({
             title: `Editar Personal: ${staffMember.name}`,
             bodyHtml: `
@@ -1223,11 +1316,17 @@ export const ViewsHotel = {
                         <input type="text" class="form-control" id="stEditPhone" value="${staffMember.phone || ''}">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Área / Departamento Asignado</label>
+                        <label class="form-label">Área Principal</label>
                         <select class="form-select" id="stEditDept">
                             <option value="">Recepción / General</option>
                             ${deptOptions}
                         </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-primary">Servicios Permitidos (Acceso a POS / Gestión)</label>
+                        <div class="row g-2 p-2 bg-light rounded border">
+                            ${serviceCheckboxes}
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Nueva Contraseña (Opcional)</label>
@@ -1247,6 +1346,7 @@ export const ViewsHotel = {
             const staffPhone = document.getElementById('stEditPhone').value;
             const departmentId = document.getElementById('stEditDept').value;
             const newPassword = document.getElementById('stEditPassword').value;
+            const permissions = Array.from(document.querySelectorAll('.chk-edit-perm:checked')).map(cb => cb.value);
 
             if (!staffName || !staffEmail) {
                 UI.showToast('Nombre y correo son requeridos.', 'warning');
@@ -1261,7 +1361,8 @@ export const ViewsHotel = {
                     staffEmail,
                     staffPhone,
                     departmentId,
-                    newPassword
+                    newPassword,
+                    permissions
                 });
                 UI.showToast('Usuario de personal actualizado exitosamente.', 'success');
                 bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
@@ -1565,6 +1666,283 @@ export const ViewsHotel = {
                     }
                 };
             };
+        } catch (err) {
+            container.innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
+        }
+    },
+
+    // 9. VISTA DINÁMICA DE CATÁLOGO Y POS MULTI-DEPARTAMENTO (Restaurante, Bar, Spa, Peluquería, Taxis, Lanchas, etc.)
+    async renderServicioPOS(container, serviceType, title, subtitle, iconClass) {
+        container.innerHTML = `<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>`;
+
+        try {
+            const catalog = await API.get('/catalog?type=' + serviceType);
+            const bookings = await API.get('/bookings?status=CHECKED_IN');
+            const user = State.getUser();
+            const isAdmin = user && (user.role === 'HOTEL_ADMIN' || user.role === 'SUPERADMIN');
+
+            let catalogHtml = '';
+            if (catalog.length === 0) {
+                catalogHtml = `<div class="p-4 text-center text-muted"><i class="bi ${iconClass} fs-1 d-block mb-2 text-secondary"></i>No se han registrado productos o servicios en este catálogo.</div>`;
+            } else {
+                catalogHtml = catalog.map(item => `
+                    <div class="card border mb-2 shadow-sm rounded-3">
+                        <div class="card-body p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div>
+                                <h6 class="fw-bold mb-1 text-dark">${item.name}</h6>
+                                ${item.description ? `<p class="small text-muted mb-1">${item.description}</p>` : ''}
+                                <span class="badge ${item.is_available ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-secondary-subtle text-secondary border'}">
+                                    ${item.is_available ? 'Disponible' : 'Agotado'}
+                                </span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="fs-5 fw-bold text-primary">$${Number(item.price_usd).toFixed(2)} USD</span>
+                                ${item.is_available && bookings.length > 0 ? `
+                                    <button class="btn btn-sm btn-outline-primary btn-quick-charge" data-id="${item.id}">
+                                        <i class="bi bi-cart-plus me-1"></i>Cargar
+                                    </button>
+                                ` : ''}
+                                ${isAdmin ? `
+                                    <button class="btn btn-sm btn-outline-secondary btn-edit-catalog" data-id="${item.id}">
+                                        <i class="bi bi-pencil-fill"></i>
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            let bookingOptionsHtml = bookings.map(b => `<option value="${b.id}">Hab. ${b.room_number} - ${b.guest_name}</option>`).join('');
+            let catalogOptionsHtml = catalog.filter(c => c.is_available).map(c => `<option value="${c.id}">[${c.department_type}] ${c.name} ($${Number(c.price_usd).toFixed(2)})</option>`).join('');
+
+            container.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                    <div>
+                        <h2 class="fw-bold mb-1"><i class="bi ${iconClass} text-primary me-2"></i>${title}</h2>
+                        <p class="text-muted mb-0">${subtitle}</p>
+                    </div>
+                    ${isAdmin ? `
+                        <button class="btn btn-primary shadow-sm" id="btnAddCatalogItem">
+                            <i class="bi bi-plus-lg me-1"></i>Nuevo Producto / Servicio
+                        </button>
+                    ` : ''}
+                </div>
+
+                <div class="row g-4">
+                    <!-- Catálogo de Servicios / Menú de Precios -->
+                    <div class="col-lg-7">
+                        <div class="card border-0 shadow-sm rounded-3">
+                            <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+                                <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-list-stars me-2 text-primary"></i>Catálogo & Lista de Precios</h5>
+                                <span class="badge bg-primary rounded-pill">${catalog.length} ítems</span>
+                            </div>
+                            <div class="card-body pt-0 custom-scroll" style="max-height: 540px; overflow-y: auto;">
+                                ${catalogHtml}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Punto de Venta POS - Carga Directa a Habitación -->
+                    <div class="col-lg-5">
+                        <div class="card border-0 shadow-sm rounded-3">
+                            <div class="card-header bg-white py-3 border-0">
+                                <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-credit-card-2-back me-2 text-primary"></i>Cobro Rápido a Habitación</h5>
+                            </div>
+                            <div class="card-body pt-0">
+                                ${bookings.length === 0 ? `
+                                    <div class="alert alert-warning py-3 small mb-0">
+                                        <i class="bi bi-exclamation-triangle me-1"></i>No hay habitaciones ocupadas (CHECKED_IN) en este momento para cargar consumos.
+                                    </div>
+                                ` : `
+                                    <form id="formPosCharge">
+                                        <div class="mb-3">
+                                            <label class="form-label fw-semibold">Habitación / Huésped Ocupante</label>
+                                            <select class="form-select" id="posBookingId" required>
+                                                <option value="">Seleccione habitación...</option>
+                                                ${bookingOptionsHtml}
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label fw-semibold">Producto / Servicio del Catálogo</label>
+                                            <select class="form-select" id="posItemId" required>
+                                                <option value="">Seleccione producto o servicio...</option>
+                                                ${catalogOptionsHtml}
+                                            </select>
+                                        </div>
+                                        <div class="row g-2 mb-3">
+                                            <div class="col-6">
+                                                <label class="form-label fw-semibold">Cantidad</label>
+                                                <input type="number" class="form-control" id="posQuantity" value="1" min="1" required>
+                                            </div>
+                                            <div class="col-6">
+                                                <label class="form-label fw-semibold">Notas / Detalles</label>
+                                                <input type="text" class="form-control" id="posNotes" placeholder="Ej: Mesa 3, Sin picante">
+                                            </div>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary w-100 btn-lg shadow-sm mt-2">
+                                            <i class="bi bi-check-circle me-1"></i>Confirmar y Cargar a Cuenta
+                                        </button>
+                                    </form>
+                                `}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Add catalog item (Admin)
+            const btnAddCat = container.querySelector('#btnAddCatalogItem');
+            if (btnAddCat) {
+                btnAddCat.onclick = () => {
+                    UI.showModal({
+                        title: `Agregar Nuevo Ítem a ${title}`,
+                        bodyHtml: `
+                            <form id="formNewCatItem">
+                                <div class="mb-3">
+                                    <label class="form-label">Nombre del Producto / Servicio</label>
+                                    <input type="text" class="form-control" id="catItemName" placeholder="Ej: Hamburguesa Gourmet, Masaje Terapéutico, Traslado Aeropuerto" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Descripción / Detalle</label>
+                                    <input type="text" class="form-control" id="catItemDesc" placeholder="Ej: Incluye bebidas / Duración 45 min...">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Precio ($USD)</label>
+                                    <input type="number" step="0.01" class="form-control" id="catItemPrice" required placeholder="15.00">
+                                </div>
+                            </form>
+                        `,
+                        footerHtml: `
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="button" class="btn btn-primary" id="btnSaveCatItem">Guardar en Catálogo</button>
+                        `
+                    });
+
+                    document.getElementById('btnSaveCatItem').onclick = async () => {
+                        const name = document.getElementById('catItemName').value;
+                        const description = document.getElementById('catItemDesc').value;
+                        const priceUsd = document.getElementById('catItemPrice').value;
+
+                        if (!name || priceUsd === undefined || priceUsd === '') {
+                            UI.showToast('Nombre y precio son requeridos.', 'warning');
+                            return;
+                        }
+
+                        try {
+                            await API.post('/catalog', { name, description, priceUsd, departmentType: serviceType });
+                            UI.showToast('Ítem agregado exitosamente al catálogo.', 'success');
+                            bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
+                            this.renderServicioPOS(container, serviceType, title, subtitle, iconClass);
+                        } catch (e) {
+                            UI.showToast(e.message, 'danger');
+                        }
+                    };
+                };
+            }
+
+            // Edit catalog item (Admin)
+            container.querySelectorAll('.btn-edit-catalog').forEach(btn => {
+                btn.onclick = () => {
+                    const itemId = btn.dataset.id;
+                    const item = catalog.find(x => x.id === itemId);
+                    if (!item) return;
+
+                    UI.showModal({
+                        title: `Editar Ítem: ${item.name}`,
+                        bodyHtml: `
+                            <form id="formEditCatItem">
+                                <div class="mb-3">
+                                    <label class="form-label">Nombre</label>
+                                    <input type="text" class="form-control" id="catEditName" value="${item.name}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Descripción</label>
+                                    <input type="text" class="form-control" id="catEditDesc" value="${item.description || ''}">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Precio ($USD)</label>
+                                    <input type="number" step="0.01" class="form-control" id="catEditPrice" value="${item.price_usd}" required>
+                                </div>
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="catEditAvailable" ${item.is_available ? 'checked' : ''}>
+                                    <label class="form-check-label fw-bold" for="catEditAvailable">Disponible para Venta</label>
+                                </div>
+                            </form>
+                        `,
+                        footerHtml: `
+                            <div class="d-flex justify-content-between w-100">
+                                <button type="button" class="btn btn-outline-danger" id="btnDeleteCatItem"><i class="bi bi-trash me-1"></i>Eliminar</button>
+                                <div>
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                    <button type="button" class="btn btn-primary" id="btnUpdateCatItem">Guardar Cambios</button>
+                                </div>
+                            </div>
+                        `
+                    });
+
+                    document.getElementById('btnDeleteCatItem').onclick = async () => {
+                        try {
+                            await API.delete('/catalog?id=' + item.id);
+                            UI.showToast('Ítem eliminado.', 'info');
+                            bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
+                            this.renderServicioPOS(container, serviceType, title, subtitle, iconClass);
+                        } catch (e) {
+                            UI.showToast(e.message, 'danger');
+                        }
+                    };
+
+                    document.getElementById('btnUpdateCatItem').onclick = async () => {
+                        const name = document.getElementById('catEditName').value;
+                        const description = document.getElementById('catEditDesc').value;
+                        const priceUsd = document.getElementById('catEditPrice').value;
+                        const isAvailable = document.getElementById('catEditAvailable').checked;
+
+                        try {
+                            await API.put('/catalog', { itemId: item.id, name, description, priceUsd, isAvailable });
+                            UI.showToast('Ítem actualizado.', 'success');
+                            bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
+                            this.renderServicioPOS(container, serviceType, title, subtitle, iconClass);
+                        } catch (e) {
+                            UI.showToast(e.message, 'danger');
+                        }
+                    };
+                };
+            });
+
+            // Quick charge button from list
+            container.querySelectorAll('.btn-quick-charge').forEach(btn => {
+                btn.onclick = () => {
+                    const itemId = btn.dataset.id;
+                    const posSelect = container.querySelector('#posItemId');
+                    if (posSelect) posSelect.value = itemId;
+                };
+            });
+
+            // Submit POS charge
+            const formPos = container.querySelector('#formPosCharge');
+            if (formPos) {
+                formPos.onsubmit = async (e) => {
+                    e.preventDefault();
+                    const bookingId = document.getElementById('posBookingId').value;
+                    const itemId = document.getElementById('posItemId').value;
+                    const quantity = document.getElementById('posQuantity').value;
+                    const notes = document.getElementById('posNotes').value;
+
+                    if (!bookingId || !itemId) {
+                        UI.showToast('Seleccione la habitación y el producto del catálogo.', 'warning');
+                        return;
+                    }
+
+                    try {
+                        const res = await API.post('/catalog/charge', { bookingId, itemId, quantity, notes });
+                        UI.showToast(res.message, 'success');
+                        formPos.reset();
+                    } catch (err) {
+                        UI.showToast(err.message, 'danger');
+                    }
+                };
+            }
         } catch (err) {
             container.innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
         }
