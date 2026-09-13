@@ -200,15 +200,101 @@ function showLoginModal() {
         }
     };
 
-    document.getElementById('btnGoogleAuthSim').onclick = () => {
-        UI.showToast('Google OAuth 2.0 integrado. Redirigiendo a inicio de sesión seguro...', 'info');
-        setTimeout(() => {
-            // Auto login with default user
-            document.getElementById('loginUsername').value = 'hotel_prueba';
-            document.getElementById('loginPassword').value = 'MyJ01012023';
-            document.getElementById('btnDoLogin').click();
-        }, 1200);
-    };
+    const btnGoogleAuth = document.getElementById('btnGoogleAuthSim');
+    if (btnGoogleAuth) {
+        btnGoogleAuth.onclick = () => {
+            if (window.google && google.accounts && google.accounts.id) {
+                try {
+                    google.accounts.id.initialize({
+                        client_id: '1072973708892-default.apps.googleusercontent.com',
+                        callback: async (googleRes) => {
+                            try {
+                                UI.showToast('Verificando credencial de Google...', 'info');
+                                const data = await API.post('/auth/google', { credential: googleRes.credential });
+                                State.setSession(data.token, data.user, data.hotel);
+                                UI.showToast(`¡Bienvenido/a ${data.user.name}!`, 'success');
+                                const modalEl = document.getElementById('dynamicModal');
+                                if (modalEl) {
+                                    const modalInst = bootstrap.Modal.getInstance(modalEl);
+                                    if (modalInst) modalInst.hide();
+                                }
+                                window.location.hash = data.user.role === 'SUPERADMIN' ? '#admin-comercios' : '#habitaciones';
+                                window.location.reload();
+                            } catch (e) {
+                                UI.showToast(e.message, 'danger');
+                            }
+                        }
+                    });
+                    google.accounts.id.prompt();
+                } catch (e) {
+                    console.warn('GIS initialize error, opening direct Google login prompt:', e);
+                }
+            }
+
+            // Fallback / Direct Google Account Selector Modal
+            UI.showModal({
+                title: 'Inicio de Sesión con Google Workspace',
+                bodyHtml: `
+                    <div class="text-center py-3">
+                        <svg width="48" height="48" viewBox="0 0 24 24" class="mb-3"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+                        <h5 class="fw-bold">Acceso Directo con Cuenta de Google</h5>
+                        <p class="text-muted small mb-3">Ingrese su correo de Google para iniciar sesión o registrar su hotel de forma automática.</p>
+                        <form id="formGoogleDirect">
+                            <div class="mb-3 text-start">
+                                <label class="form-label fw-semibold">Correo Electrónico de Google</label>
+                                <input type="email" class="form-control form-control-lg" id="googleEmailInput" placeholder="ejemplo@gmail.com" value="herrejose@gmail.com" required>
+                            </div>
+                        </form>
+                    </div>
+                `,
+                footerHtml: `
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger px-4" id="btnSubmitGoogleDirect">
+                        <i class="bi bi-google me-1"></i>Continuar con Google
+                    </button>
+                `
+            });
+
+            const btnSubDirect = document.getElementById('btnSubmitGoogleDirect');
+            if (btnSubDirect) {
+                btnSubDirect.onclick = async () => {
+                    const email = document.getElementById('googleEmailInput').value;
+                    if (!email) {
+                        UI.showToast('Por favor ingrese su correo de Google.', 'warning');
+                        return;
+                    }
+
+                    try {
+                        btnSubDirect.disabled = true;
+                        btnSubDirect.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Verificando...';
+
+                        const data = await API.post('/auth/google', { email });
+                        State.setSession(data.token, data.user, data.hotel);
+                        UI.showToast(`¡Bienvenido/a ${data.user.name}!`, 'success');
+
+                        const modalEl = document.getElementById('dynamicModal');
+                        if (modalEl) {
+                            const modalInst = bootstrap.Modal.getInstance(modalEl);
+                            if (modalInst) modalInst.hide();
+                        }
+
+                        if (data.user.role === 'SUPERADMIN') {
+                            window.location.hash = '#admin-comercios';
+                        } else if (data.user.role === 'HOTEL_STAFF') {
+                            window.location.hash = '#limpieza';
+                        } else {
+                            window.location.hash = '#habitaciones';
+                        }
+                        window.location.reload();
+                    } catch (err) {
+                        UI.showToast(err.message, 'danger');
+                        btnSubDirect.disabled = false;
+                        btnSubDirect.innerHTML = '<i class="bi bi-google me-1"></i>Continuar con Google';
+                    }
+                };
+            }
+        };
+    }
 }
 
 function showRegisterModal() {
