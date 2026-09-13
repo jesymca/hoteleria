@@ -226,22 +226,6 @@ function showLoginModal() {
                     </button>
                 `
             });
-                        <p class="text-muted small mb-3">Ingrese su correo de Google para iniciar sesión o registrar su hotel de forma automática.</p>
-                        <form id="formGoogleDirect">
-                            <div class="mb-3 text-start">
-                                <label class="form-label fw-semibold">Correo Electrónico de Google</label>
-                                <input type="email" class="form-control form-control-lg" id="googleEmailInput" placeholder="ejemplo@gmail.com" value="herrejose@gmail.com" required>
-                            </div>
-                        </form>
-                    </div>
-                `,
-                footerHtml: `
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-danger px-4" id="btnSubmitGoogleDirect">
-                        <i class="bi bi-google me-1"></i>Continuar con Google
-                    </button>
-                `
-            });
 
             const btnSubDirect = document.getElementById('btnSubmitGoogleDirect');
             if (btnSubDirect) {
