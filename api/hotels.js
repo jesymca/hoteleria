@@ -33,6 +33,16 @@ export default async function handler(req, res) {
         try {
             const { name, rif, phone, address, logo_url, primary_color, dark_mode, social_links } = req.body || {};
 
+            // Ensure no undefined values are passed to libSQL args
+            const safeName = name ?? null;
+            const safeRif = rif ?? null;
+            const safePhone = phone ?? null;
+            const safeAddress = address ?? null;
+            const safeLogoUrl = logo_url ?? null;
+            const safeColor = primary_color ?? null;
+            const safeDarkMode = dark_mode !== undefined ? (dark_mode ? 1 : 0) : null;
+            const safeSocial = social_links ?? null;
+
             await db.execute({
                 sql: `UPDATE hotels 
                 SET name = COALESCE(?, name),
@@ -44,7 +54,7 @@ export default async function handler(req, res) {
                     dark_mode = COALESCE(?, dark_mode),
                     social_links = COALESCE(?, social_links)
                 WHERE id = ?`,
-                args: [name, rif, phone, address, logo_url, primary_color, dark_mode !== undefined ? (dark_mode ? 1 : 0) : null, social_links, hotelId]
+                args: [safeName, safeRif, safePhone, safeAddress, safeLogoUrl, safeColor, safeDarkMode, safeSocial, hotelId]
             });
 
             const updated = await db.execute({
@@ -55,7 +65,7 @@ export default async function handler(req, res) {
             return res.status(200).json(updated.rows[0]);
         } catch (err) {
             console.error('Update hotel error:', err);
-            return res.status(500).json({ error: 'Error al actualizar perfil del hotel.' });
+            return res.status(500).json({ error: `Error al actualizar perfil del hotel: ${err.message}` });
         }
     }
 

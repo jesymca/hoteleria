@@ -1290,7 +1290,8 @@ export const ViewsHotel = {
 
                     try {
                         const file = fileInput.files[0];
-                        const destPath = `clients/${hotel.id}/payments/proof_${Date.now()}.${file.name.split('.').pop()}`;
+                        const userId = State.getUser() ? State.getUser().id : 'user';
+                        const destPath = `clients/${userId}/payments/proof_${Date.now()}.${file.name.split('.').pop()}`;
 
                         UI.showToast('Subiendo comprobante a Cloudflare R2...', 'info');
                         const proofUrl = await Uploader.uploadToR2(file, destPath);
