@@ -17,6 +17,8 @@
     { "source": "/api/expenses", "destination": "/api/ops.js" },
     { "source": "/api/departments/(.*)", "destination": "/api/ops.js" },
     { "source": "/api/departments", "destination": "/api/ops.js" },
+    { "source": "/api/catalog/(.*)", "destination": "/api/ops.js" },
+    { "source": "/api/catalog", "destination": "/api/ops.js" },
 
     { "source": "/api/billing/(.*)", "destination": "/api/billing.js" },
     { "source": "/api/billing", "destination": "/api/billing.js" },

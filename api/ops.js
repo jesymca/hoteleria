@@ -352,7 +352,103 @@ export default async function handler(req, res) {
                 args.push(typeFilter);
             }
             sql += ' ORDER BY name ASC';
-            const catRes = await db.execute({ sql, args });
+            let catRes = await db.execute({ sql, args });
+
+            // Auto-seed default catalog items if empty for this service type
+            if (catRes.rows.length === 0 && typeFilter) {
+                const DEFAULT_ITEMS = {
+                    RESTAURANT: [
+                        { name: 'Desayuno Criollo Venezolano', description: 'Arepas, carne mechada, queso paisa y caraotas', price_usd: 8.00 },
+                        { name: 'Pabellón Criollo Especial', description: 'Arroz, carne mechada, tajadas fribles y caraotas negras', price_usd: 12.00 },
+                        { name: 'Pargo Rojo Frito con Tostones', description: 'Pargo fresco con ensalada mixta y tostones de plátano', price_usd: 16.00 },
+                        { name: 'Jarra de Jugo Natural de Parchita', description: 'Fruta fresca de temporada 1 Litro', price_usd: 4.00 }
+                    ],
+                    BAR: [
+                        { name: 'Mojito Cubano Tradicional', description: 'Ron blanco, menta fresca, limón y soda', price_usd: 6.00 },
+                        { name: 'Piña Colada Tropical', description: 'Ron, crema de coco y jugo de piña natural', price_usd: 7.00 },
+                        { name: 'Cerveza Nacional Bien Fría', description: 'Polar Pilsen / Zulia 330ml', price_usd: 2.50 },
+                        { name: 'Servicio de Ron Añejo + Hielo', description: 'Botella de Ron Añejo Venezolano 0.75L con refrescos', price_usd: 35.00 }
+                    ],
+                    SPA: [
+                        { name: 'Masaje Relajante Corporal (45 min)', description: 'Terapia corporal completa con aceites esenciales', price_usd: 35.00 },
+                        { name: 'Exfoliación Corporal con Sales Marinas', description: 'Limpieza profunda y aromaterapia', price_usd: 45.00 },
+                        { name: 'Sesión de Jacuzzi Térmico & Hidromasaje', description: 'Uso de jacuzzi privado por 30 minutos', price_usd: 25.00 }
+                    ],
+                    PELUQUERIA: [
+                        { name: 'Corte de Cabello Caballero / Dama', description: 'Corte personalizado con lavado y secado básico', price_usd: 12.00 },
+                        { name: 'Secado y Peinado Profesional', description: 'Modelado con cepillo y planchado', price_usd: 15.00 },
+                        { name: 'Perfilado de Barba & Toalla Caliente', description: 'Arreglo de barba con aceites hidratantes', price_usd: 8.00 }
+                    ],
+                    GALERIA: [
+                        { name: 'Pintura al Óleo Paisaje Marítimo', description: 'Obra de arte original firmada por artista local', price_usd: 45.00 },
+                        { name: 'Artesanía en Cerámica y Madera', description: 'Escultura artesanal venezolana', price_usd: 20.00 },
+                        { name: 'Souvenir Sombrero Playero & Bolso', description: 'Artesanía de palma tejida a mano', price_usd: 15.00 }
+                    ],
+                    GUIA_TURISTICA: [
+                        { name: 'Tour Guiado Parque Nacional', description: 'Excursión de día completo con guía bilingüe', price_usd: 30.00 },
+                        { name: 'Caminata Ecológica & Avistamiento de Aves', description: 'Recorrido por senderos naturales (3 horas)', price_usd: 20.00 },
+                        { name: 'Paseo Nocturno Histórico & Gastronómico', description: 'Recorrido por el casco colonial y degustación', price_usd: 25.00 }
+                    ],
+                    TAXIS: [
+                        { name: 'Traslado Aeropuerto -> Hotel / Posada', description: 'Vehículo con aire acondicionado y equipaje', price_usd: 25.00 },
+                        { name: 'Traslado Posada -> Centro Ciudad', description: 'Viaje directo de ida o vuelta', price_usd: 10.00 },
+                        { name: 'Servicio de Taxi Privado por Hora', description: 'Chofer privado a disposición', price_usd: 15.00 }
+                    ],
+                    LANCHAS: [
+                        { name: 'Paseo en Lancha a Cayos (Ida y Vuelta)', description: 'Traslado marino a islas cercanas con chalecos', price_usd: 25.00 },
+                        { name: 'Alquiler de Peñero Privado por Día', description: 'Lancha exclusiva con marinero a disposición', price_usd: 120.00 },
+                        { name: 'Tour de Snorkeling & Delfines', description: 'Incluye equipos de máscara y tubo', price_usd: 40.00 }
+                    ],
+                    TINTORERIA: [
+                        { name: 'Lavado y Planchado de Traje / Vestido', description: 'Tratamiento delicado y empaque protector', price_usd: 10.00 },
+                        { name: 'Servicio Express Lavandería por Kilo', description: 'Lavado, secado y doblado', price_usd: 5.00 },
+                        { name: 'Planchado de Camisa / Pantalón', description: 'Planchado al vapor profesional', price_usd: 3.00 }
+                    ],
+                    ZAPATERIA: [
+                        { name: 'Lustrado y Pulido de Calzado', description: 'Limpieza y brillo con crema nutritiva', price_usd: 4.00 },
+                        { name: 'Reparación de Suela & Costura Express', description: 'Reparación y pega especializada', price_usd: 8.00 }
+                    ],
+                    MANICURISTA: [
+                        { name: 'Manicura Rusa & Esmaltado Semi-Permanente', description: 'Limpieza de cutículas y color duradero', price_usd: 15.00 },
+                        { name: 'Diseño y Decoración de Uñas', description: 'Arte en uñas y pedrería', price_usd: 18.00 }
+                    ],
+                    PEDICURISTA: [
+                        { name: 'Pedicura Spa Profunda & Exfoliación', description: 'Baño de sales, exfoliación y masaje', price_usd: 18.00 },
+                        { name: 'Tratamiento Hidratante de Parafina', description: 'Hidratación profunda para pies', price_usd: 22.00 }
+                    ],
+                    TECNOLOGIA: [
+                        { name: 'Impresión / Escaneo de Documentos', description: 'Impresión blanco y negro o color por página', price_usd: 0.50 },
+                        { name: 'Acceso WiFi Dedicado de Alta Velocidad', description: 'Pase premium por día para streaming / trabajo', price_usd: 5.00 },
+                        { name: 'Asistencia Técnica & Configuración', description: 'Soporte informático básico', price_usd: 10.00 }
+                    ],
+                    ALQUILER_ESPACIOS: [
+                        { name: 'Alquiler Salón de Eventos (Medio Día)', description: 'Uso de salón climatizado con sillas y mesas', price_usd: 100.00 },
+                        { name: 'Reserva de Terrazas o Áreas del Caney', description: 'Espacio al aire libre para reuniones', price_usd: 150.00 }
+                    ],
+                    ALQUILER_EQUIPOS: [
+                        { name: 'Alquiler de Proyector HD & Pantalla', description: 'Incluye cables HDMI y soporte', price_usd: 40.00 },
+                        { name: 'Alquiler de Sistema de Sonido & Micrófono', description: 'Corneta amplificada con bluetooth', price_usd: 50.00 }
+                    ],
+                    HOUSEKEEPING: [
+                        { name: 'Servicio de Limpieza Extra a Solicitud', description: 'Aseo completo de habitación fuera de horario', price_usd: 10.00 },
+                        { name: 'Cambio Adicional de Lencería y Toallas', description: 'Juego completo de sabanas y toallas limpias', price_usd: 5.00 }
+                    ]
+                };
+
+                const defaultsToSeed = DEFAULT_ITEMS[typeFilter];
+                if (defaultsToSeed) {
+                    for (const item of defaultsToSeed) {
+                        const itemId = 'cat_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
+                        await db.execute({
+                            sql: `INSERT INTO hotel_catalog_items (id, hotel_id, department_type, name, description, price_usd)
+                                  VALUES (?, ?, ?, ?, ?, ?)`,
+                            args: [itemId, hotelId, typeFilter, item.name, item.description, item.price_usd]
+                        });
+                    }
+                    catRes = await db.execute({ sql, args });
+                }
+            }
+
             return res.status(200).json(catRes.rows);
         }
 
