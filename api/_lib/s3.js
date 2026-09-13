@@ -1,8 +1,8 @@
 import { S3Client } from '@aws-sdk/client-s3';
 
 const accountId = process.env.R2_ACCOUNT_ID || 'da7c23add0ce839e4989c068fbfa4394';
-const accessKeyId = process.env.R2_ACCESS_KEY_ID || 'dummy_access_key';
-const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY || 'dummy_secret_key';
+const accessKeyId = process.env.R2_ACCESS_KEY_ID || '';
+const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY || '';
 
 export const s3Client = new S3Client({
     region: 'auto',
