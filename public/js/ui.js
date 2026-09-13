@@ -68,8 +68,25 @@ export const UI = {
         modalBody.innerHTML = bodyHtml;
         modalFooter.innerHTML = footerHtml || `<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>`;
 
-        const bsModal = new bootstrap.Modal(modalEl);
+        let bsModal = bootstrap.Modal.getInstance(modalEl);
+        if (!bsModal) {
+            bsModal = new bootstrap.Modal(modalEl);
+        }
         bsModal.show();
         return bsModal;
     }
 };
+
+if (typeof document !== 'undefined') {
+    document.addEventListener('hidden.bs.modal', () => {
+        setTimeout(() => {
+            const visibleModals = document.querySelectorAll('.modal.show');
+            if (visibleModals.length === 0) {
+                document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+                document.body.classList.remove('modal-open');
+                document.body.style.removeProperty('overflow');
+                document.body.style.removeProperty('padding-right');
+            }
+        }, 150);
+    });
+}

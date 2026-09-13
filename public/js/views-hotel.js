@@ -343,8 +343,10 @@ export const ViewsHotel = {
                             try {
                                 await API.post('/rooms', { action: 'create_type', typeName, basePriceUsd, capacity });
                                 UI.showToast('Tipo de habitación creado exitosamente.', 'success');
-                                bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
+                                const data = await API.get('/rooms');
+                                currentTypes = data.roomTypes || [];
                                 this.renderRack(container);
+                                renderRoomTypeModal();
                             } catch (e) {
                                 UI.showToast(e.message, 'danger');
                             }
@@ -380,10 +382,14 @@ export const ViewsHotel = {
                                     </form>
                                 `,
                                 footerHtml: `
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                                    <button type="button" class="btn btn-primary" id="btnUpdateRoomType">Guardar Cambios</button>
+                                    <button type="button" class="btn btn-secondary" id="btnCancelEditType"><i class="bi bi-arrow-left me-1"></i>Volver</button>
+                                    <button type="button" class="btn btn-primary" id="btnUpdateRoomType"><i class="bi bi-save me-1"></i>Guardar Cambios</button>
                                 `
                             });
+
+                            document.getElementById('btnCancelEditType').onclick = () => {
+                                renderRoomTypeModal();
+                            };
 
                             document.getElementById('btnUpdateRoomType').onclick = async () => {
                                 const typeName = document.getElementById('editRtName').value;
@@ -393,8 +399,10 @@ export const ViewsHotel = {
                                 try {
                                     await API.put('/rooms', { action: 'update_type', typeId: targetType.id, typeName, basePriceUsd, capacity });
                                     UI.showToast('Estilo actualizado correctamente.', 'success');
-                                    bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
+                                    const data = await API.get('/rooms');
+                                    currentTypes = data.roomTypes || [];
                                     this.renderRack(container);
+                                    renderRoomTypeModal();
                                 } catch (err) {
                                     UI.showToast(err.message, 'danger');
                                 }
@@ -409,8 +417,10 @@ export const ViewsHotel = {
                             try {
                                 await API.delete('/rooms?typeId=' + typeId);
                                 UI.showToast('Estilo eliminado.', 'info');
-                                bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
+                                const data = await API.get('/rooms');
+                                currentTypes = data.roomTypes || [];
                                 this.renderRack(container);
+                                renderRoomTypeModal();
                             } catch (err) {
                                 UI.showToast(err.message, 'danger');
                             }
@@ -434,9 +444,9 @@ export const ViewsHotel = {
                     currentTypes = data.roomTypes || [];
                 } catch (e) {}
 
-                let typeOptions = currentTypes.map(t => `<option value="${t.id}">${t.name} ($${t.base_price_usd}/noche)</option>`).join('');
-
                 const renderRoomManageModal = () => {
+                    let typeOptions = currentTypes.map(t => `<option value="${t.id}">${t.name} ($${t.base_price_usd}/noche)</option>`).join('');
+
                     UI.showModal({
                         title: 'Gestión & Agregar Nueva Habitación al Rack',
                         bodyHtml: `
@@ -552,8 +562,11 @@ export const ViewsHotel = {
                             try {
                                 await API.post('/rooms', { roomNumber, roomTypeId, status, notes });
                                 UI.showToast('Habitación creada exitosamente.', 'success');
-                                bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
+                                const data = await API.get('/rooms');
+                                currentRooms = data.rooms || [];
+                                currentTypes = data.roomTypes || [];
                                 this.renderRack(container);
+                                renderRoomManageModal();
                             } catch (e) {
                                 UI.showToast(e.message, 'danger');
                             }
@@ -572,8 +585,11 @@ export const ViewsHotel = {
                             try {
                                 await API.put('/rooms', { roomId, status: newStatus });
                                 UI.showToast(`Habitación ${newStatus === 'AVAILABLE' ? 'habilitada' : 'inhabilitada'} correctamente.`, 'info');
-                                bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
+                                const data = await API.get('/rooms');
+                                currentRooms = data.rooms || [];
+                                currentTypes = data.roomTypes || [];
                                 this.renderRack(container);
+                                renderRoomManageModal();
                             } catch (err) {
                                 UI.showToast(err.message, 'danger');
                             }
@@ -624,10 +640,14 @@ export const ViewsHotel = {
                                     </form>
                                 `,
                                 footerHtml: `
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                                    <button type="button" class="btn btn-primary" id="btnUpdateRoom">Guardar Cambios</button>
+                                    <button type="button" class="btn btn-secondary" id="btnCancelEditRoom"><i class="bi bi-arrow-left me-1"></i>Volver</button>
+                                    <button type="button" class="btn btn-primary" id="btnUpdateRoom"><i class="bi bi-save me-1"></i>Guardar Cambios</button>
                                 `
                             });
+
+                            document.getElementById('btnCancelEditRoom').onclick = () => {
+                                renderRoomManageModal();
+                            };
 
                             document.getElementById('btnUpdateRoom').onclick = async () => {
                                 const roomNumber = document.getElementById('editRmNumber').value;
@@ -638,8 +658,11 @@ export const ViewsHotel = {
                                 try {
                                     await API.put('/rooms', { roomId: room.id, roomNumber, roomTypeId, status, notes });
                                     UI.showToast('Habitación actualizada exitosamente.', 'success');
-                                    bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
+                                    const data = await API.get('/rooms');
+                                    currentRooms = data.rooms || [];
+                                    currentTypes = data.roomTypes || [];
                                     this.renderRack(container);
+                                    renderRoomManageModal();
                                 } catch (err) {
                                     UI.showToast(err.message, 'danger');
                                 }
@@ -654,8 +677,11 @@ export const ViewsHotel = {
                             try {
                                 await API.delete('/rooms?id=' + roomId);
                                 UI.showToast('Habitación eliminada.', 'info');
-                                bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
+                                const data = await API.get('/rooms');
+                                currentRooms = data.rooms || [];
+                                currentTypes = data.roomTypes || [];
                                 this.renderRack(container);
+                                renderRoomManageModal();
                             } catch (err) {
                                 UI.showToast(err.message, 'danger');
                             }
