@@ -1,4 +1,40 @@
 // PDF Generation Service using jsPDF and autoTable
+
+async function fetchImageAsDataURL(url) {
+    if (!url) return null;
+    if (url.startsWith('data:')) return url;
+    try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const blob = await res.blob();
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = () => resolve(null);
+            reader.readAsDataURL(blob);
+        });
+    } catch (e) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.crossOrigin = 'Anonymous';
+            img.onload = () => {
+                try {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    resolve(canvas.toDataURL('image/png'));
+                } catch (err) {
+                    resolve(null);
+                }
+            };
+            img.onerror = () => resolve(null);
+            img.src = url;
+        });
+    }
+}
+
 export const PDFService = {
     async generateInvoicePDF(hotel, booking, invoice, expenses = []) {
         const { jsPDF } = window.jspdf;
@@ -15,44 +51,27 @@ export const PDFService = {
         let logoXShift = 0;
 
         if (showLogo && hotel.logo_url) {
-            try {
-                const logoBase64 = await new Promise((resolve) => {
-                    const img = new Image();
-                    img.crossOrigin = 'Anonymous';
-                    img.onload = () => {
-                        try {
-                            const canvas = document.createElement('canvas');
-                            canvas.width = img.width;
-                            canvas.height = img.height;
-                            const ctx = canvas.getContext('2d');
-                            ctx.drawImage(img, 0, 0);
-                            resolve(canvas.toDataURL('image/png'));
-                        } catch (e) {
-                            resolve(null);
-                        }
-                    };
-                    img.onerror = () => resolve(null);
-                    img.src = hotel.logo_url;
-                });
-
-                if (logoBase64) {
-                    doc.addImage(logoBase64, 'PNG', 14, 3, 22, 22);
+            const logoDataUrl = await fetchImageAsDataURL(hotel.logo_url);
+            if (logoDataUrl) {
+                try {
+                    const format = logoDataUrl.includes('image/jpeg') || logoDataUrl.includes('image/jpg') ? 'JPEG' : 'PNG';
+                    doc.addImage(logoDataUrl, format, 14, 3, 22, 22);
                     logoXShift = 26;
+                } catch (e) {
+                    console.warn('doc.addImage error:', e);
                 }
-            } catch (e) {
-                console.warn('No se pudo renderizar el logo en el comprobante PDF:', e);
             }
         }
 
         // Hotel Name / Title in Header
         doc.setTextColor(255, 255, 255);
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(16);
+        doc.setFontSize(15);
         doc.text(hotel.name || 'ESTABLECIMIENTO HOTELERO', 14 + logoXShift, 18);
 
         // Subtitle / Header Notes
         const headerSubtitle = hotel.invoice_header_notes || 'COMPROBANTE DE HOSPEDAJE Y FACTURA DE CONSUMOS';
-        doc.setFontSize(9);
+        doc.setFontSize(8.5);
         doc.setFont('helvetica', 'normal');
         doc.text(headerSubtitle.toUpperCase(), 196, 18, { align: 'right' });
 
@@ -130,18 +149,21 @@ export const PDFService = {
 
         const finalY = doc.lastAutoTable.finalY + 10;
 
-        // Totals Box
+        // Totals Box (Right Aligned at 196mm margin)
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(50, 50, 50);
+        doc.text(`Subtotal Hospedaje: $${Number(invoice.subtotal_usd || invoice.subtotalUsd).toFixed(2)} USD`, 196, finalY, { align: 'right' });
+        doc.text(`Total Consumos Extras: $${Number(invoice.total_expenses_usd || invoice.totalExpensesUsd || 0).toFixed(2)} USD`, 196, finalY + 5, { align: 'right' });
+        
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(10);
-        doc.text(`Subtotal Hospedaje: $${Number(invoice.subtotal_usd || invoice.subtotalUsd).toFixed(2)} USD`, 130, finalY);
-        doc.text(`Total Consumos Extras: $${Number(invoice.total_expenses_usd || invoice.totalExpensesUsd || 0).toFixed(2)} USD`, 130, finalY + 6);
-        
-        doc.setFontSize(12);
         doc.setTextColor(13, 110, 253);
-        doc.text(`TOTAL GENERAL USD: $${Number(invoice.total_usd || invoice.totalUsd).toFixed(2)} USD`, 130, finalY + 14);
+        doc.text(`TOTAL GENERAL USD: $${Number(invoice.total_usd || invoice.totalUsd).toFixed(2)} USD`, 196, finalY + 12, { align: 'right' });
         
+        doc.setFontSize(10);
         doc.setTextColor(25, 135, 84);
-        doc.text(`TOTAL EN BOLÍVARES: Bs. ${Number(invoice.total_ves || invoice.totalVes).toFixed(2)}`, 130, finalY + 22);
+        doc.text(`TOTAL EN BOLÍVARES: Bs. ${Number(invoice.total_ves || invoice.totalVes).toFixed(2)}`, 196, finalY + 18, { align: 'right' });
 
         // Payment Condition / Status Badge
         const rawStatus = invoice.payment_status || 'PAID';
@@ -155,11 +177,11 @@ export const PDFService = {
                        rawStatus === 'VOIDED' ? [220, 53, 69] : [111, 66, 193];
 
         doc.setFillColor(...pColor);
-        doc.roundedRect(14, finalY + 4, 110, 16, 2, 2, 'F');
+        doc.roundedRect(14, finalY, 95, 16, 2, 2, 'F');
         doc.setTextColor(255, 255, 255);
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(9);
-        doc.text(`CONDICIÓN: ${pStatus}`, 18, finalY + 14);
+        doc.text(`CONDICIÓN: ${pStatus}`, 18, finalY + 10);
 
         // Footer Custom Notes or Legal Disclaimer
         const footerNote = hotel.invoice_footer_notes || 'Valores liquidados a la Tasa Oficial de Cambio emitida por el Banco Central de Venezuela (BCV). Gracias por su preferencia.';
