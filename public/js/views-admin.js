@@ -184,7 +184,7 @@ export const ViewsAdmin = {
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
                         <h2 class="fw-bold mb-1 text-primary"><i class="bi bi-buildings-fill me-2"></i>Directorio Global de Comercios Afiliados</h2>
-                        <p class="text-muted mb-0">Monitoreo de posadas, número de habitaciones y control de licencias de uso</p>
+                        <p class="text-muted mb-0">Monitoreo de posadas, número de habitaciones, estatus y asignación de licencias SaaS</p>
                     </div>
                 </div>
 
@@ -196,10 +196,10 @@ export const ViewsAdmin = {
                                     <tr>
                                         <th>Hotel / Posada</th>
                                         <th>Administrador</th>
-                                        <th>RIF / Contacto</th>
-                                        <th>Habitaciones</th>
-                                        <th>Estatus Licencia</th>
-                                        <th class="text-end">Acciones Licencia</th>
+                                        <th>Contacto / RIF</th>
+                                        <th>Tipo Licencia</th>
+                                        <th>Estatus y Tiempo Disponible</th>
+                                        <th class="text-end">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -208,16 +208,38 @@ export const ViewsAdmin = {
             if (hotels.length === 0) {
                 html += `<tr><td colspan="6" class="text-center py-4 text-muted">No hay hoteles afiliados registrados.</td></tr>`;
             } else {
+                const now = new Date();
                 hotels.forEach(h => {
-                    const stBadge = h.status === 'ACTIVE' ? '<span class="badge bg-success">Activo</span>' :
+                    const licType = h.license_type === 'COURTESY' ? 'COURTESY' : 'COMMERCIAL';
+                    const licBadge = licType === 'COURTESY' 
+                        ? '<span class="badge bg-purple text-white"><i class="bi bi-gift-fill me-1"></i>Licencia de Cortesía</span>'
+                        : '<span class="badge bg-primary"><i class="bi bi-award-fill me-1"></i>Licencia Comercial</span>';
+
+                    const stBadge = h.status === 'ACTIVE' ? '<span class="badge bg-success">Activa</span>' :
                                     h.status === 'TRIAL' ? '<span class="badge bg-info text-dark">Prueba (Trial)</span>' :
-                                    h.status === 'OVERDUE' ? '<span class="badge bg-warning text-dark">Por Vencer</span>' : '<span class="badge bg-danger">Suspendido</span>';
+                                    h.status === 'OVERDUE' ? '<span class="badge bg-warning text-dark">Por Vencer</span>' : '<span class="badge bg-danger">Suspendida</span>';
+
+                    // Calculate days left
+                    const dueDate = h.subscription_due_date ? new Date(h.subscription_due_date) : (h.trial_ends_at ? new Date(h.trial_ends_at) : null);
+                    let daysLeft = 0;
+                    let progressPercent = 0;
+                    let progressColor = 'bg-success';
+
+                    if (dueDate) {
+                        const diffTime = dueDate.getTime() - now.getTime();
+                        daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        if (daysLeft < 0) daysLeft = 0;
+                        progressPercent = Math.min(100, Math.max(0, Math.round((daysLeft / 30) * 100)));
+                        if (daysLeft <= 5) progressColor = 'bg-danger';
+                        else if (daysLeft <= 10) progressColor = 'bg-warning';
+                    }
 
                     html += `
                         <tr>
                             <td>
-                                <strong>${h.name}</strong>
+                                <strong class="fs-6">${h.name}</strong>
                                 <div class="small text-muted">${h.address || 'Sin dirección física'}</div>
+                                <div class="mt-1"><span class="badge bg-secondary rounded-pill">${h.room_count || 0} Hab.</span></div>
                             </td>
                             <td>
                                 <div>${h.owner_name}</div>
@@ -227,18 +249,35 @@ export const ViewsAdmin = {
                                 <div>RIF: ${h.rif}</div>
                                 <div class="small text-muted">${h.phone || 'Sin telf'}</div>
                             </td>
-                            <td><span class="badge bg-secondary rounded-pill">${h.room_count} Hab.</span></td>
-                            <td>${stBadge}</td>
+                            <td>${licBadge}</td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    ${stBadge}
+                                    <span class="small fw-bold ${daysLeft <= 5 ? 'text-danger' : 'text-dark'}">${daysLeft} días restantes</span>
+                                </div>
+                                <div class="progress" style="height: 6px; width: 140px;">
+                                    <div class="progress-bar ${progressColor}" role="progressbar" style="width: ${progressPercent}%;"></div>
+                                </div>
+                                ${dueDate ? `<div class="small text-muted mt-1" style="font-size: 0.75rem;">Vence: ${new Date(dueDate).toLocaleDateString('es-VE')}</div>` : ''}
+                            </td>
                             <td class="text-end">
-                                ${h.status === 'SUSPENDED' ? `
-                                    <button class="btn btn-sm btn-success btn-change-status" data-id="${h.id}" data-status="ACTIVE">
-                                        <i class="bi bi-play-circle me-1"></i>Reactivar
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary btn-edit-hotel" data-hotel='${JSON.stringify(h).replace(/'/g, "&apos;")}'>
+                                        <i class="bi bi-pencil-square me-1"></i>Editar / Datos
                                     </button>
-                                ` : `
-                                    <button class="btn btn-sm btn-outline-danger btn-change-status" data-id="${h.id}" data-status="SUSPENDED">
-                                        <i class="bi bi-pause-circle me-1"></i>Suspender
+                                    <button class="btn btn-outline-warning btn-assign-license" data-hotel='${JSON.stringify(h).replace(/'/g, "&apos;")}'>
+                                        <i class="bi bi-clock-history me-1"></i>Asignar Licencia
                                     </button>
-                                `}
+                                    ${h.status === 'SUSPENDED' ? `
+                                        <button class="btn btn-success btn-change-status" data-id="${h.id}" data-status="ACTIVE">
+                                            <i class="bi bi-play-circle me-1"></i>Reactivar
+                                        </button>
+                                    ` : `
+                                        <button class="btn btn-outline-danger btn-change-status" data-id="${h.id}" data-status="SUSPENDED">
+                                            <i class="bi bi-pause-circle me-1"></i>Suspender
+                                        </button>
+                                    `}
+                                </div>
                             </td>
                         </tr>
                     `;
@@ -255,6 +294,7 @@ export const ViewsAdmin = {
 
             container.innerHTML = html;
 
+            // Change Quick Status (Reactivar / Suspender)
             container.querySelectorAll('.btn-change-status').forEach(btn => {
                 btn.onclick = async () => {
                     const hotelId = btn.getAttribute('data-id');
@@ -267,6 +307,130 @@ export const ViewsAdmin = {
                     } catch (e) {
                         UI.showToast(e.message, 'danger');
                     }
+                };
+            });
+
+            // Assign / Extend Custom License Modal
+            container.querySelectorAll('.btn-assign-license').forEach(btn => {
+                btn.onclick = () => {
+                    const h = JSON.parse(btn.getAttribute('data-hotel'));
+                    const currentDueDateStr = h.subscription_due_date ? new Date(h.subscription_due_date).toISOString().split('T')[0] : '';
+
+                    UI.showModal({
+                        title: `<i class="bi bi-shield-lock-fill text-primary me-2"></i>Asignar Licencia Especial / Vigencia`,
+                        bodyHtml: `
+                            <form id="formAssignLicense">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Hotel / Comercio</label>
+                                    <input type="text" class="form-control" value="${h.name}" readonly>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Tipo de Licencia</label>
+                                    <select class="form-select" id="licTypeSelect">
+                                        <option value="COMMERCIAL" ${h.license_type !== 'COURTESY' ? 'selected' : ''}>Licencia Comercial (De Pago)</option>
+                                        <option value="COURTESY" ${h.license_type === 'COURTESY' ? 'selected' : ''}>Licencia de Cortesía (Gratuita/SuperAdmin)</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Estatus de la Licencia</label>
+                                    <select class="form-select" id="licStatusSelect">
+                                        <option value="ACTIVE" ${h.status === 'ACTIVE' ? 'selected' : ''}>Activa</option>
+                                        <option value="TRIAL" ${h.status === 'TRIAL' ? 'selected' : ''}>Prueba (Trial)</option>
+                                        <option value="OVERDUE" ${h.status === 'OVERDUE' ? 'selected' : ''}>Por Vencer / Vencida</option>
+                                        <option value="SUSPENDED" ${h.status === 'SUSPENDED' ? 'selected' : ''}>Suspendida</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Fecha de Habilitación / Vencimiento</label>
+                                    <input type="date" class="form-control" id="licDueDate" value="${currentDueDateStr}" required>
+                                    <small class="text-muted">Selecciona la fecha límite exacta en la que expirará el servicio para este hotel.</small>
+                                </div>
+                            </form>
+                        `,
+                        footerHtml: `
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="button" class="btn btn-primary" id="btnSaveLicense"><i class="bi bi-save me-1"></i>Guardar Licencia</button>
+                        `
+                    });
+
+                    document.getElementById('btnSaveLicense').onclick = async () => {
+                        const licenseType = document.getElementById('licTypeSelect').value;
+                        const status = document.getElementById('licStatusSelect').value;
+                        const dueDate = document.getElementById('licDueDate').value;
+
+                        try {
+                            const res = await API.put('/admin/hotels', {
+                                hotelId: h.id,
+                                licenseType,
+                                status,
+                                subscriptionDueDate: dueDate
+                            });
+                            UI.showToast(res.message, 'success');
+                            bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
+                            this.renderComercios(container);
+                        } catch (e) {
+                            UI.showToast(e.message, 'danger');
+                        }
+                    };
+                };
+            });
+
+            // Edit Hotel Data Modal
+            container.querySelectorAll('.btn-edit-hotel').forEach(btn => {
+                btn.onclick = () => {
+                    const h = JSON.parse(btn.getAttribute('data-hotel'));
+
+                    UI.showModal({
+                        title: `<i class="bi bi-pencil-square text-primary me-2"></i>Editar Datos del Comercio`,
+                        bodyHtml: `
+                            <form id="formEditHotel">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Nombre del Hotel / Comercio</label>
+                                    <input type="text" class="form-control" id="editHotelName" value="${h.name || ''}" required>
+                                </div>
+                                <div class="row g-2 mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">RIF</label>
+                                        <input type="text" class="form-control" id="editHotelRif" value="${h.rif || ''}" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">Teléfono Contacto</label>
+                                        <input type="text" class="form-control" id="editHotelPhone" value="${h.phone || ''}">
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Dirección Física</label>
+                                    <textarea class="form-control" id="editHotelAddress" rows="2">${h.address || ''}</textarea>
+                                </div>
+                            </form>
+                        `,
+                        footerHtml: `
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="button" class="btn btn-primary" id="btnSaveHotelData"><i class="bi bi-check-lg me-1"></i>Guardar Cambios</button>
+                        `
+                    });
+
+                    document.getElementById('btnSaveHotelData').onclick = async () => {
+                        const name = document.getElementById('editHotelName').value;
+                        const rif = document.getElementById('editHotelRif').value;
+                        const phone = document.getElementById('editHotelPhone').value;
+                        const address = document.getElementById('editHotelAddress').value;
+
+                        try {
+                            const res = await API.put('/admin/hotels', {
+                                hotelId: h.id,
+                                name,
+                                rif,
+                                phone,
+                                address
+                            });
+                            UI.showToast(res.message, 'success');
+                            bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
+                            this.renderComercios(container);
+                        } catch (e) {
+                            UI.showToast(e.message, 'danger');
+                        }
+                    };
                 };
             });
         } catch (err) {

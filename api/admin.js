@@ -209,21 +209,37 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'PUT') {
-        const { hotelId, status, extendDays } = req.body || {};
-        if (!hotelId || !status) return res.status(400).json({ error: 'hotelId y status son requeridos.' });
+        const { hotelId, status, extendDays, name, rif, phone, address, licenseType, subscriptionDueDate } = req.body || {};
+        if (!hotelId) return res.status(400).json({ error: 'hotelId es requerido.' });
 
-        if (extendDays && parseInt(extendDays) > 0) {
-            await db.execute({
-                sql: `UPDATE hotels 
-                      SET status = ?,
-                          subscription_due_date = DATETIME(COALESCE(subscription_due_date, CURRENT_TIMESTAMP), '+' || ? || ' days')
-                      WHERE id = ?`,
-                args: [status, parseInt(extendDays), hotelId]
-            });
-        } else {
-            await db.execute({ sql: 'UPDATE hotels SET status = ? WHERE id = ?', args: [status, hotelId] });
+        const hCheck = await db.execute({ sql: 'SELECT * FROM hotels WHERE id = ?', args: [hotelId] });
+        if (hCheck.rows.length === 0) return res.status(404).json({ error: 'Hotel no encontrado.' });
+        const currentHotel = hCheck.rows[0];
+
+        const newName = name !== undefined ? name : currentHotel.name;
+        const newRif = rif !== undefined ? rif : currentHotel.rif;
+        const newPhone = phone !== undefined ? phone : currentHotel.phone;
+        const newAddress = address !== undefined ? address : currentHotel.address;
+        const newStatus = status !== undefined ? status : currentHotel.status;
+        const newLicenseType = licenseType !== undefined ? licenseType : (currentHotel.license_type || 'COMMERCIAL');
+
+        let newDueDate = currentHotel.subscription_due_date;
+        if (subscriptionDueDate !== undefined) {
+            newDueDate = subscriptionDueDate ? new Date(subscriptionDueDate).toISOString() : null;
+        } else if (extendDays && parseInt(extendDays) > 0) {
+            const baseDate = currentHotel.subscription_due_date ? new Date(currentHotel.subscription_due_date) : new Date();
+            baseDate.setDate(baseDate.getDate() + parseInt(extendDays));
+            newDueDate = baseDate.toISOString();
         }
-        return res.status(200).json({ message: `Licencia actualizada a ${status}.` });
+
+        await db.execute({
+            sql: `UPDATE hotels 
+                  SET name = ?, rif = ?, phone = ?, address = ?, status = ?, license_type = ?, subscription_due_date = ?
+                  WHERE id = ?`,
+            args: [newName, newRif, newPhone, newAddress, newStatus, newLicenseType, newDueDate, hotelId]
+        });
+
+        return res.status(200).json({ message: 'Hotel actualizado exitosamente.' });
     }
 
     return res.status(405).json({ error: 'Método no permitido' });

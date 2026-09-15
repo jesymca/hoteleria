@@ -51,6 +51,7 @@ export async function initDB() {
 
         try { await db.execute("ALTER TABLE hotels ADD COLUMN check_in_time TEXT DEFAULT '15:00'"); } catch (e) {}
         try { await db.execute("ALTER TABLE hotels ADD COLUMN check_out_time TEXT DEFAULT '12:00'"); } catch (e) {}
+        try { await db.execute("ALTER TABLE hotels ADD COLUMN license_type TEXT DEFAULT 'COMMERCIAL'"); } catch (e) {}
 
         await db.execute(`
             CREATE TABLE IF NOT EXISTS banks (

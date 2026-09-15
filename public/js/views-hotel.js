@@ -3,6 +3,7 @@ import { API } from './api.js';
 import { State } from './state.js';
 import { UI } from './ui.js';
 import { Uploader } from './uploader.js';
+import { PDFService } from './pdf.js';
 // Helper CSV Utility for POS catalog imports
 const CSVUtil = {
     downloadTemplate(filename, content) {
@@ -795,6 +796,7 @@ export const ViewsHotel = {
                                     <option value="V">V</option>
                                     <option value="E">E</option>
                                     <option value="J">J</option>
+                                    <option value="G">G</option>
                                     <option value="PASSPORT">Pasaporte</option>
                                 </select>
                             </div>
@@ -1554,6 +1556,7 @@ export const ViewsHotel = {
                                 <option value="V">V (Venezolano)</option>
                                 <option value="E">E (Extranjero)</option>
                                 <option value="J">J (Jurídico)</option>
+                                <option value="G">G (Gobierno)</option>
                                 <option value="PASSPORT">Pasaporte</option>
                             </select>
                         </div>
@@ -2879,11 +2882,32 @@ export const ViewsHotel = {
             const hotel = State.getHotel();
             const monthlyFee = settings.monthly_fee_usd || '20.00';
 
+            const now = new Date();
+            const licType = hotel.license_type === 'COURTESY' ? 'COURTESY' : 'COMMERCIAL';
+            const licNameText = licType === 'COURTESY' ? 'Licencia de Cortesía' : 'Licencia Comercial';
+            const licBadge = licType === 'COURTESY' 
+                ? '<span class="badge bg-purple text-white fs-6 ms-2"><i class="bi bi-gift-fill me-1"></i>Licencia de Cortesía</span>'
+                : '<span class="badge bg-primary fs-6 ms-2"><i class="bi bi-award-fill me-1"></i>Licencia Comercial</span>';
+
+            const dueDate = hotel.subscription_due_date ? new Date(hotel.subscription_due_date) : (hotel.trial_ends_at ? new Date(hotel.trial_ends_at) : null);
+            let daysLeft = 0;
+            let progressPercent = 0;
+            let progressColor = 'bg-success';
+
+            if (dueDate) {
+                const diffTime = dueDate.getTime() - now.getTime();
+                daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                if (daysLeft < 0) daysLeft = 0;
+                progressPercent = Math.min(100, Math.max(0, Math.round((daysLeft / 30) * 100)));
+                if (daysLeft <= 5) progressColor = 'bg-danger';
+                else if (daysLeft <= 10) progressColor = 'bg-warning';
+            }
+
             let html = `
                 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
                     <div>
                         <h2 class="fw-bold mb-1"><i class="bi bi-credit-card-2-front-fill text-primary me-2"></i>Estado de Membresía SaaS</h2>
-                        <p class="text-muted mb-0">Gestión de suscripción mensual ($${monthlyFee} USD/mes) y reporte de comprobantes</p>
+                        <p class="text-muted mb-0">Gestión de suscripción (${licNameText}) y reporte de comprobantes</p>
                     </div>
                     <button class="btn btn-primary" id="btnReportPayment"><i class="bi bi-upload me-1"></i>Reportar Pago de Membresía</button>
                 </div>
@@ -2892,17 +2916,26 @@ export const ViewsHotel = {
                     <div class="col-md-6">
                         <div class="card border-0 shadow-sm p-4 h-100">
                             <h5 class="fw-bold text-primary mb-3">Estatus de la Licencia de Uso</h5>
+                            <div class="mb-3 d-flex align-items-center flex-wrap gap-2">
+                                <span class="text-muted">Tipo de Licencia:</span>
+                                ${licBadge}
+                            </div>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="text-muted">Tiempo de Uso Disponible:</span>
+                                    <span class="fw-bold ${daysLeft <= 5 ? 'text-danger' : 'text-success'} fs-6">${daysLeft} días restantes</span>
+                                </div>
+                                <div class="progress" style="height: 10px;">
+                                    <div class="progress-bar ${progressColor} progress-bar-striped progress-bar-animated" role="progressbar" style="width: ${progressPercent}%;"></div>
+                                </div>
+                            </div>
                             <div class="mb-2">
                                 <span class="text-muted">Estado Actual:</span>
                                 <span class="badge ${hotel.status === 'ACTIVE' ? 'bg-success' : 'bg-warning text-dark'} fs-6 ms-2">${hotel.status}</span>
                             </div>
-                            <div class="mb-2">
-                                <span class="text-muted">Días de Prueba Hasta:</span>
-                                <strong>${hotel.trial_ends_at ? new Date(hotel.trial_ends_at).toLocaleDateString('es-VE') : 'N/A'}</strong>
-                            </div>
                             <div>
                                 <span class="text-muted">Próximo Vencimiento:</span>
-                                <strong>${hotel.subscription_due_date ? new Date(hotel.subscription_due_date).toLocaleDateString('es-VE') : 'Al finalizar el periodo de prueba'}</strong>
+                                <strong>${dueDate ? new Date(dueDate).toLocaleDateString('es-VE') : 'N/A'}</strong>
                             </div>
                         </div>
                     </div>

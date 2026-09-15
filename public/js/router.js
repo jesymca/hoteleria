@@ -67,7 +67,17 @@ export const Router = {
                 ViewsHotel.renderAjustes(mainContainer);
                 break;
             case '#pagos':
-                ViewsHotel.renderPagos(mainContainer);
+                if (user.role === 'HOTEL_ADMIN' || State.hasDepartmentPermission('ADMINISTRACION')) {
+                    ViewsHotel.renderPagos(mainContainer);
+                } else {
+                    mainContainer.innerHTML = `
+                        <div class="alert alert-danger shadow-sm border-0 rounded-3 p-4 my-5 text-center">
+                            <i class="bi bi-shield-lock-fill fs-1 d-block mb-2"></i>
+                            <h4 class="fw-bold">Acceso Restringido</h4>
+                            <p class="mb-0">Esta sección es exclusiva para el Administrador del Hotel y Personal Administrativo.</p>
+                        </div>
+                    `;
+                }
                 break;
 
             // specialized POS service routes
@@ -226,11 +236,16 @@ export const Router = {
             if (brandText) brandText.textContent = 'Hotelería Venezuela';
         }
 
+        const bcvData = State.getBcvRate();
+        const bcvTickerHtml = bcvData && bcvData.promedio 
+            ? `<i class="bi bi-currency-dollar me-1"></i>BCV: Bs. ${Number(bcvData.promedio).toFixed(2)}`
+            : `<i class="bi bi-currency-dollar me-1"></i>BCV: Cargando...`;
+
         if (!user) {
             navContainer.innerHTML = `
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center gap-1">
                     <li class="nav-item me-2">
-                        <span class="bcv-ticker" id="bcvTickerBadge"><i class="bi bi-currency-dollar me-1"></i>BCV: Cargando...</span>
+                        <span class="bcv-ticker" id="bcvTickerBadge">${bcvTickerHtml}</span>
                     </li>
                     <li class="nav-item">
                         <button class="btn btn-sm btn-outline-primary fw-semibold" id="btnNavLogin"><i class="bi bi-box-arrow-in-right me-1"></i>Iniciar Sesión</button>
@@ -336,7 +351,7 @@ export const Router = {
 
         menuHtml += `
             <div class="d-flex align-items-center gap-2 mt-2 mt-lg-0">
-                <span class="bcv-ticker" id="bcvTickerBadge"><i class="bi bi-currency-dollar me-1"></i>BCV: Cargando...</span>
+                <span class="bcv-ticker" id="bcvTickerBadge">${bcvTickerHtml}</span>
                 <div class="dropdown">
                     <button class="btn btn-sm btn-outline-secondary user-dropdown-btn dropdown-toggle d-flex align-items-center gap-1" type="button" data-bs-toggle="dropdown">
                         <i class="bi bi-person-circle"></i>
