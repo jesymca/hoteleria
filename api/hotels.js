@@ -31,7 +31,11 @@ export default async function handler(req, res) {
 
     if (req.method === 'PUT') {
         try {
-            const { name, rif, phone, address, logo_url, primary_color, dark_mode, social_links, check_in_time, check_out_time } = req.body || {};
+            const { 
+                name, rif, phone, address, logo_url, primary_color, dark_mode, social_links, 
+                check_in_time, check_out_time,
+                invoice_prefix, invoice_next_number, invoice_header_notes, invoice_footer_notes
+            } = req.body || {};
 
             // Ensure no undefined values are passed to libSQL args
             const safeName = name ?? null;
@@ -44,6 +48,10 @@ export default async function handler(req, res) {
             const safeSocial = social_links ?? null;
             const safeCheckIn = check_in_time ?? null;
             const safeCheckOut = check_out_time ?? null;
+            const safeInvPrefix = invoice_prefix ?? null;
+            const safeInvNextNum = invoice_next_number !== undefined && invoice_next_number !== null ? parseInt(invoice_next_number) : null;
+            const safeInvHeader = invoice_header_notes ?? null;
+            const safeInvFooter = invoice_footer_notes ?? null;
 
             await db.execute({
                 sql: `UPDATE hotels 
@@ -56,9 +64,18 @@ export default async function handler(req, res) {
                     dark_mode = COALESCE(?, dark_mode),
                     social_links = COALESCE(?, social_links),
                     check_in_time = COALESCE(?, check_in_time),
-                    check_out_time = COALESCE(?, check_out_time)
+                    check_out_time = COALESCE(?, check_out_time),
+                    invoice_prefix = COALESCE(?, invoice_prefix),
+                    invoice_next_number = COALESCE(?, invoice_next_number),
+                    invoice_header_notes = COALESCE(?, invoice_header_notes),
+                    invoice_footer_notes = COALESCE(?, invoice_footer_notes)
                 WHERE id = ?`,
-                args: [safeName, safeRif, safePhone, safeAddress, safeLogoUrl, safeColor, safeDarkMode, safeSocial, safeCheckIn, safeCheckOut, hotelId]
+                args: [
+                    safeName, safeRif, safePhone, safeAddress, safeLogoUrl, safeColor, 
+                    safeDarkMode, safeSocial, safeCheckIn, safeCheckOut,
+                    safeInvPrefix, safeInvNextNum, safeInvHeader, safeInvFooter,
+                    hotelId
+                ]
             });
 
             const updated = await db.execute({

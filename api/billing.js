@@ -82,10 +82,31 @@ export default async function handler(req, res) {
                 args: [paymentStatus, notes || null, invoiceId, hotelId]
             });
 
-            return res.status(200).json({ message: 'Estado de factura actualizado correctamente.' });
+            const statusMsg = paymentStatus === 'VOIDED' ? 'Factura anulada exitosamente.' :
+                              paymentStatus === 'REFUNDED' ? 'Devolución / Nota de Crédito procesada.' :
+                              'Estado de factura actualizado correctamente.';
+
+            return res.status(200).json({ message: statusMsg });
         } catch (err) {
             console.error('Update invoice error:', err);
             return res.status(500).json({ error: 'Error al actualizar factura.' });
+        }
+    }
+
+    if (req.method === 'DELETE') {
+        try {
+            const invoiceId = req.query.id;
+            if (!invoiceId) return res.status(400).json({ error: 'ID de factura no proporcionado.' });
+
+            await db.execute({
+                sql: 'DELETE FROM invoices WHERE id = ? AND hotel_id = ?',
+                args: [invoiceId, hotelId]
+            });
+
+            return res.status(200).json({ message: 'Factura eliminada del sistema.' });
+        } catch (err) {
+            console.error('Delete invoice error:', err);
+            return res.status(500).json({ error: 'Error al eliminar la factura.' });
         }
     }
 

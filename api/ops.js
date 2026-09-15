@@ -93,7 +93,14 @@ export default async function handler(req, res) {
                 args: [booking.guest_name, booking.room_id, hotelId]
             });
 
-            const invoiceNumber = 'FAC-' + Date.now().toString().slice(-6);
+            const hInfo = await db.execute({ sql: 'SELECT invoice_prefix, invoice_next_number FROM hotels WHERE id = ?', args: [hotelId] });
+            const prefix = (hInfo.rows[0] && hInfo.rows[0].invoice_prefix) ? hInfo.rows[0].invoice_prefix : 'FAC-';
+            const nextNum = (hInfo.rows[0] && hInfo.rows[0].invoice_next_number) ? Number(hInfo.rows[0].invoice_next_number) : 1;
+            const invoiceNumber = `${prefix}${String(nextNum).padStart(6, '0')}`;
+
+            // Increment next_number for hotel
+            await db.execute({ sql: 'UPDATE hotels SET invoice_next_number = COALESCE(invoice_next_number, 1) + 1 WHERE id = ?', args: [hotelId] });
+
             const invoiceId = 'inv_' + Date.now();
             const invStatus = paymentStatus || 'PAID';
 
@@ -130,14 +137,8 @@ export default async function handler(req, res) {
                 invoice: {
                     id: invoiceId,
                     invoiceNumber,
-                    subtotalUsd,
-                    totalExpensesUsd,
                     totalUsd,
-                    bcvRate,
-                    totalVes,
-                    paymentStatus: invStatus,
-                    guestName: booking.guest_name,
-                    roomNumber: booking.room_number
+                    totalVes
                 }
             });
         } catch (err) {
@@ -186,14 +187,32 @@ export default async function handler(req, res) {
 
         if (req.method === 'PUT') {
             const { id, name, bankName, accountDetails, requiresAdminValidation, isActive } = req.body || {};
-            if (!id || !name) return res.status(400).json({ error: 'ID y Nombre son requeridos.' });
+            if (!id) return res.status(400).json({ error: 'ID es requerido.' });
             await db.execute({
                 sql: `UPDATE hotel_payment_methods 
-                      SET name = ?, bank_name = ?, account_details = ?, requires_admin_validation = ?, is_active = ?
+                      SET name = COALESCE(?, name),
+                          bank_name = COALESCE(?, bank_name),
+                          account_details = COALESCE(?, account_details),
+                          requires_admin_validation = COALESCE(?, requires_admin_validation),
+                          is_active = COALESCE(?, is_active)
                       WHERE id = ? AND hotel_id = ?`,
-                args: [name, bankName || '', accountDetails || '', requiresAdminValidation ? 1 : 0, isActive !== undefined ? (isActive ? 1 : 0) : 1, id, hotelId]
+                args: [
+                    name || null,
+                    bankName !== undefined ? bankName : null,
+                    accountDetails !== undefined ? accountDetails : null,
+                    requiresAdminValidation !== undefined ? (requiresAdminValidation ? 1 : 0) : null,
+                    isActive !== undefined ? (isActive ? 1 : 0) : null,
+                    id, hotelId
+                ]
             });
             return res.status(200).json({ message: 'Forma de pago actualizada.' });
+        }
+
+        if (req.method === 'DELETE') {
+            const pmId = req.query.id;
+            if (!pmId) return res.status(400).json({ error: 'ID es requerido.' });
+            await db.execute({ sql: 'DELETE FROM hotel_payment_methods WHERE id = ? AND hotel_id = ?', args: [pmId, hotelId] });
+            return res.status(200).json({ message: 'Forma de pago eliminada.' });
         }
     }
 

@@ -210,10 +210,14 @@ export const ViewsAdmin = {
             } else {
                 const now = new Date();
                 hotels.forEach(h => {
-                    const licType = h.license_type === 'COURTESY' ? 'COURTESY' : 'COMMERCIAL';
-                    const licBadge = licType === 'COURTESY' 
-                        ? '<span class="badge bg-purple text-white"><i class="bi bi-gift-fill me-1"></i>Licencia de Cortesía</span>'
-                        : '<span class="badge bg-primary"><i class="bi bi-award-fill me-1"></i>Licencia Comercial</span>';
+                    let licBadge = '';
+                    if (h.status === 'TRIAL') {
+                        licBadge = '<span class="badge bg-info text-dark"><i class="bi bi-clock me-1"></i>Licencia Gratuita (Prueba)</span>';
+                    } else if (h.license_type === 'COURTESY') {
+                        licBadge = '<span class="badge bg-purple text-white"><i class="bi bi-gift-fill me-1"></i>Licencia de Cortesía</span>';
+                    } else {
+                        licBadge = '<span class="badge bg-success"><i class="bi bi-award-fill me-1"></i>Licencia Comercial</span>';
+                    }
 
                     const stBadge = h.status === 'ACTIVE' ? '<span class="badge bg-success">Activa</span>' :
                                     h.status === 'TRIAL' ? '<span class="badge bg-info text-dark">Prueba (Trial)</span>' :

@@ -1182,8 +1182,14 @@ export const ViewsHotel = {
                                                 : '<span class="badge bg-secondary">Inactivo</span>'}
                                         </td>
                                         <td class="text-end">
-                                            <button class="btn btn-xs btn-outline-primary btn-toggle-pm-val me-1" data-id="${m.id}" data-reqval="${m.requires_admin_validation}">
-                                                <i class="bi bi-sliders me-1"></i>${Number(m.requires_admin_validation) === 1 ? 'Quitar Req. Admin' : 'Exigir Req. Admin'}
+                                            <button class="btn btn-sm py-1 px-2 btn-outline-primary btn-toggle-pm-val me-1" data-id="${m.id}" data-reqval="${m.requires_admin_validation}" title="Alternar requisito de aprobación admin">
+                                                <i class="bi bi-sliders me-1"></i>${Number(m.requires_admin_validation) === 1 ? 'Quitar Req.' : 'Exigir Req.'}
+                                            </button>
+                                            <button class="btn btn-sm py-1 px-2 ${Number(m.is_active) === 1 ? 'btn-outline-warning' : 'btn-outline-success'} btn-toggle-pm-active me-1" data-id="${m.id}" data-active="${m.is_active}" title="${Number(m.is_active) === 1 ? 'Inhabilitar medio de pago' : 'Habilitar medio de pago'}">
+                                                <i class="bi ${Number(m.is_active) === 1 ? 'bi-eye-slash' : 'bi-eye'} me-1"></i>${Number(m.is_active) === 1 ? 'Inhabilitar' : 'Habilitar'}
+                                            </button>
+                                            <button class="btn btn-sm py-1 px-2 btn-outline-danger btn-delete-pm" data-id="${m.id}" title="Eliminar medio de pago">
+                                                <i class="bi bi-trash"></i>
                                             </button>
                                         </td>
                                     </tr>
@@ -1239,6 +1245,37 @@ export const ViewsHotel = {
                                     isActive: Number(targetM.is_active) === 1
                                 });
                                 UI.showToast('Requisito de validación actualizado.', 'info');
+                                methods = await API.get('/payment-methods');
+                                renderModalBody();
+                            } catch (err) {
+                                UI.showToast(err.message, 'danger');
+                            }
+                        }
+                    };
+                });
+
+                document.querySelectorAll('.btn-toggle-pm-active').forEach(btn => {
+                    btn.onclick = async () => {
+                        const id = btn.getAttribute('data-id');
+                        const curActive = Number(btn.getAttribute('data-active')) === 1;
+                        try {
+                            await API.put('/payment-methods', { id, isActive: !curActive });
+                            UI.showToast(`Medio de pago ${!curActive ? 'habilitado' : 'inhabilitado'}.`, 'info');
+                            methods = await API.get('/payment-methods');
+                            renderModalBody();
+                        } catch (err) {
+                            UI.showToast(err.message, 'danger');
+                        }
+                    };
+                });
+
+                document.querySelectorAll('.btn-delete-pm').forEach(btn => {
+                    btn.onclick = async () => {
+                        const id = btn.getAttribute('data-id');
+                        if (confirm('¿Está seguro de eliminar esta forma de pago?')) {
+                            try {
+                                await API.delete('/payment-methods?id=' + id);
+                                UI.showToast('Forma de pago eliminada.', 'success');
                                 methods = await API.get('/payment-methods');
                                 renderModalBody();
                             } catch (err) {
@@ -1858,17 +1895,20 @@ export const ViewsHotel = {
                                 <tbody>
             `;
 
+            const canManageInvoices = State.isHotelAdmin() || State.isSuperAdmin() || State.hasDepartmentPermission('FACTURACION_ADMIN');
+
             if (invoices.length === 0) {
                 html += `<tr><td colspan="8" class="text-center py-4 text-muted">No hay facturas emitidas aún. Realice un Check-out para generar un comprobante.</td></tr>`;
             } else {
                 invoices.forEach(inv => {
-                    const isPaid = (inv.payment_status || 'PAID') === 'PAID';
-                    const statusBadge = isPaid 
-                        ? `<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>PAGADO</span>`
-                        : `<span class="badge bg-warning text-dark"><i class="bi bi-clock-history me-1"></i>CRÉDITO PENDIENTE</span>`;
+                    const st = inv.payment_status || 'PAID';
+                    const statusBadge = st === 'PAID' ? `<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>PAGADO</span>` :
+                                        st === 'CREDIT' ? `<span class="badge bg-warning text-dark"><i class="bi bi-clock-history me-1"></i>CRÉDITO PENDIENTE</span>` :
+                                        st === 'VOIDED' ? `<span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>ANULADA</span>` :
+                                        `<span class="badge bg-purple text-white"><i class="bi bi-arrow-return-left me-1"></i>DEVOLUCIÓN</span>`;
 
                     html += `
-                        <tr>
+                        <tr class="${st === 'VOIDED' ? 'table-secondary opacity-75' : ''}">
                             <td><strong class="text-primary">${inv.invoice_number}</strong></td>
                             <td>${inv.guest_name}</td>
                             <td>Hab. ${inv.room_number}</td>
@@ -1877,14 +1917,33 @@ export const ViewsHotel = {
                             <td>${statusBadge}</td>
                             <td class="small text-muted">${new Date(inv.created_at).toLocaleDateString('es-VE')}</td>
                             <td class="text-end">
-                                <button class="btn btn-sm btn-outline-primary btn-download-pdf me-1" data-id="${inv.id}">
-                                    <i class="bi bi-file-earmark-pdf me-1"></i>PDF Comprobante
-                                </button>
-                                ${!isPaid ? `
-                                    <button class="btn btn-sm btn-success btn-pay-invoice" data-id="${inv.id}">
-                                        <i class="bi bi-cash me-1"></i>Liquidar Pago
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary btn-download-pdf" data-id="${inv.id}">
+                                        <i class="bi bi-file-earmark-pdf me-1"></i>PDF
                                     </button>
-                                ` : ''}
+                                    ${st === 'CREDIT' && canManageInvoices ? `
+                                        <button class="btn btn-success btn-pay-invoice" data-id="${inv.id}">
+                                            <i class="bi bi-cash me-1"></i>Liquidar
+                                        </button>
+                                    ` : ''}
+                                    ${canManageInvoices ? `
+                                        <div class="dropdown d-inline-block">
+                                            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                                Acciones
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                                                ${st !== 'VOIDED' ? `
+                                                    <li><button class="dropdown-item text-warning btn-void-invoice" data-id="${inv.id}"><i class="bi bi-slash-circle me-2"></i>Anular Factura</button></li>
+                                                ` : ''}
+                                                ${st !== 'REFUNDED' && st !== 'VOIDED' ? `
+                                                    <li><button class="dropdown-item text-purple btn-refund-invoice" data-id="${inv.id}"><i class="bi bi-arrow-return-left me-2"></i>Procesar Devolución</button></li>
+                                                ` : ''}
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li><button class="dropdown-item text-danger btn-delete-invoice" data-id="${inv.id}"><i class="bi bi-trash me-2"></i>Eliminar Factura</button></li>
+                                            </ul>
+                                        </div>
+                                    ` : ''}
+                                </div>
                             </td>
                         </tr>
                     `;
@@ -1933,7 +1992,7 @@ export const ViewsHotel = {
                         UI.showToast('Error al generar PDF: ' + err.message, 'danger');
                     } finally {
                         btn.disabled = false;
-                        btn.innerHTML = `<i class="bi bi-file-earmark-pdf me-1"></i>PDF Comprobante`;
+                        btn.innerHTML = `<i class="bi bi-file-earmark-pdf me-1"></i>PDF`;
                     }
                 };
             });
@@ -1966,6 +2025,115 @@ export const ViewsHotel = {
                                     try {
                                         await API.put('/billing/invoices', { invoiceId: inv.id, paymentStatus: 'PAID', notes });
                                         UI.showToast('Factura marcada como PAGADA exitosamente 🟢', 'success');
+                                        bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
+                                        this.renderFacturacion(container);
+                                    } catch (err) {
+                                        UI.showToast(err.message, 'danger');
+                                    }
+                                }
+                            }
+                        ]
+                    });
+                };
+            });
+
+            // Bind Anular / Void Invoice
+            container.querySelectorAll('.btn-void-invoice').forEach(btn => {
+                btn.onclick = () => {
+                    const invId = btn.getAttribute('data-id');
+                    const inv = invoicesMap[invId];
+                    if (!inv) return;
+
+                    UI.showModal({
+                        title: '⚠️ Anular Factura',
+                        bodyHtml: `
+                            <p>¿Está seguro de anular la factura <strong>${inv.invoice_number}</strong> de <strong>${inv.guest_name}</strong>?</p>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Motivo de Anulación</label>
+                                <input type="text" class="form-control" id="voidInvNotes" placeholder="Ej: Error en datos de emisión, cancelación de estadía">
+                            </div>
+                        `,
+                        footerButtons: [
+                            { text: 'Cancelar', class: 'btn-secondary', dismiss: true },
+                            {
+                                text: 'Confirmar Anulación 🔴',
+                                class: 'btn-danger fw-bold',
+                                onClick: async () => {
+                                    const notes = document.getElementById('voidInvNotes').value;
+                                    try {
+                                        await API.put('/billing/invoices', { invoiceId: inv.id, paymentStatus: 'VOIDED', notes });
+                                        UI.showToast('Factura anulada correctamente.', 'warning');
+                                        bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
+                                        this.renderFacturacion(container);
+                                    } catch (err) {
+                                        UI.showToast(err.message, 'danger');
+                                    }
+                                }
+                            }
+                        ]
+                    });
+                };
+            });
+
+            // Bind Devolución / Refund Invoice
+            container.querySelectorAll('.btn-refund-invoice').forEach(btn => {
+                btn.onclick = () => {
+                    const invId = btn.getAttribute('data-id');
+                    const inv = invoicesMap[invId];
+                    if (!inv) return;
+
+                    UI.showModal({
+                        title: '🟣 Procesar Devolución / Nota de Crédito',
+                        bodyHtml: `
+                            <p><strong>Factura:</strong> ${inv.invoice_number}</p>
+                            <p><strong>Huésped:</strong> ${inv.guest_name}</p>
+                            <p class="fs-5 fw-bold text-purple">Monto a Devolver: $${Number(inv.total_usd).toFixed(2)} USD</p>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Detalle / Motivo de Devolución</label>
+                                <input type="text" class="form-control" id="refundInvNotes" placeholder="Ej: Reembolso acordado por desocupación anticipada">
+                            </div>
+                        `,
+                        footerButtons: [
+                            { text: 'Cancelar', class: 'btn-secondary', dismiss: true },
+                            {
+                                text: 'Emitir Devolución 🟣',
+                                class: 'btn-primary fw-bold',
+                                onClick: async () => {
+                                    const notes = document.getElementById('refundInvNotes').value;
+                                    try {
+                                        await API.put('/billing/invoices', { invoiceId: inv.id, paymentStatus: 'REFUNDED', notes });
+                                        UI.showToast('Devolución registrada exitosamente.', 'info');
+                                        bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
+                                        this.renderFacturacion(container);
+                                    } catch (err) {
+                                        UI.showToast(err.message, 'danger');
+                                    }
+                                }
+                            }
+                        ]
+                    });
+                };
+            });
+
+            // Bind Delete Invoice
+            container.querySelectorAll('.btn-delete-invoice').forEach(btn => {
+                btn.onclick = () => {
+                    const invId = btn.getAttribute('data-id');
+                    const inv = invoicesMap[invId];
+                    if (!inv) return;
+
+                    UI.showModal({
+                        title: '🗑️ Eliminar Factura Permanentemente',
+                        bodyHtml: `<p class="text-danger fw-bold">Esta acción eliminará el registro de la factura ${inv.invoice_number} de forma irreversible. ¿Desea continuar?</p>`,
+                        footerButtons: [
+                            { text: 'Cancelar', class: 'btn-secondary', dismiss: true },
+                            {
+                                text: 'Eliminar Factura 🗑️',
+                                class: 'btn-danger fw-bold',
+                                onClick: async () => {
+                                    try {
+                                        await API.delete(`/billing/invoices?id=${inv.id}`);
+                                        UI.showToast('Factura eliminada.', 'info');
                                         bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
                                         this.renderFacturacion(container);
                                     } catch (err) {
@@ -2256,16 +2424,25 @@ export const ViewsHotel = {
 
                 staffListContainer.innerHTML = filteredStaff.map(s => {
                     const userPerms = s.permissions || [];
-                    const permBadges = userPerms.map(p => `<span class="badge bg-primary-subtle text-primary border border-primary-subtle fs-8 me-1 mb-1">${p}</span>`).join('');
+                    const isStaffAdmin = s.role === 'HOTEL_ADMIN' || userPerms.includes('SUBSCRIPCION') || userPerms.includes('FACTURACION_ADMIN');
+                    const roleBadge = isStaffAdmin 
+                        ? '<span class="badge bg-purple text-white me-1 mb-1"><i class="bi bi-shield-lock me-1"></i>STAFF ADMINISTRATIVO</span>' 
+                        : '<span class="badge bg-secondary text-light me-1 mb-1"><i class="bi bi-person-badge me-1"></i>STAFF HOTEL</span>';
+
+                    const permBadges = userPerms.map(p => {
+                        if (p === 'SUBSCRIPCION') return '<span class="badge bg-warning text-dark border border-warning me-1 mb-1"><i class="bi bi-star-fill me-1"></i>Membresía / Suscripción</span>';
+                        if (p === 'FACTURACION_ADMIN') return '<span class="badge bg-danger-subtle text-danger border border-danger-subtle me-1 mb-1"><i class="bi bi-receipt-cutoff me-1"></i>Anulación/Devolución Facturas</span>';
+                        return `<span class="badge bg-primary-subtle text-primary border border-primary-subtle fs-8 me-1 mb-1">${p}</span>`;
+                    }).join('');
 
                     return `
                         <div class="list-group-item d-flex justify-content-between align-items-center px-2 py-3 border-bottom">
                             <div class="d-flex align-items-center gap-3">
-                                <div class="avatar-circle bg-primary-subtle text-primary fw-bold rounded-circle d-flex align-items-center justify-content-center" style="width: 42px; height: 42px; font-size: 1.1rem;">
+                                <div class="avatar-circle ${isStaffAdmin ? 'bg-purple text-white' : 'bg-primary-subtle text-primary'} fw-bold rounded-circle d-flex align-items-center justify-content-center" style="width: 42px; height: 42px; font-size: 1.1rem;">
                                     ${(s.name || 'U').charAt(0).toUpperCase()}
                                 </div>
                                 <div>
-                                    <div class="fw-bold text-dark mb-0">${s.name}</div>
+                                    <div class="fw-bold text-dark mb-0">${s.name} ${roleBadge}</div>
                                     <div class="small text-muted mb-1">
                                         <i class="bi bi-envelope me-1"></i>${s.email}
                                         ${s.phone ? `<span class="ms-2"><i class="bi bi-whatsapp me-1 text-success"></i>${s.phone}</span>` : ''}
@@ -2431,21 +2608,9 @@ export const ViewsHotel = {
                     { type: 'CINE', label: 'Cine' },
                     { type: 'PISCINA', label: 'Piscina' },
                     { type: 'PLAYA', label: 'Playa' },
-                    { type: 'GOLF', label: 'Golf' },
-                    { type: 'LENCERIA', label: 'Lencería' },
-                    { type: 'TENIS', label: 'Tenis' },
-                    { type: 'SURF', label: 'Surf' },
-                    { type: 'CABALLOS', label: 'Caballos' },
-                    { type: 'CUATRIMOTOS', label: 'Cuatrimotos' },
-                    { type: 'HELADERIA', label: 'Heladería' },
-                    { type: 'BODEGON', label: 'Bodegón' },
-                    { type: 'TIENDA', label: 'Tienda' },
-                    { type: 'BUCEO', label: 'Buceo' },
-                    { type: 'PARAPENTE', label: 'Parapente' },
-                    { type: 'PESCA', label: 'Pesca' },
-                    { type: 'VEHICULOS', label: 'Rústicos 4x4' },
-                    { type: 'EVENTOS', label: 'Eventos' },
-                    { type: 'HOUSEKEEPING', label: 'Mucamas' }
+                    { type: 'HOUSEKEEPING', label: 'Mucamas' },
+                    { type: 'SUBSCRIPCION', label: '⭐ Membresía / Suscripción' },
+                    { type: 'FACTURACION_ADMIN', label: '🧾 Facturación (Anulación/Devolución)' }
                 ].map(s => `
                     <div class="col-6 col-md-4">
                         <div class="form-check">
@@ -2658,7 +2823,9 @@ export const ViewsHotel = {
             { type: 'PESCA', label: 'Pesca' },
             { type: 'VEHICULOS', label: 'Rústicos 4x4' },
             { type: 'EVENTOS', label: 'Eventos' },
-            { type: 'HOUSEKEEPING', label: 'Mucamas' }
+            { type: 'HOUSEKEEPING', label: 'Mucamas' },
+            { type: 'SUBSCRIPCION', label: '⭐ Membresía / Suscripción' },
+            { type: 'FACTURACION_ADMIN', label: '🧾 Facturación (Anulación/Devolución)' }
         ].map(s => `
             <div class="col-6 col-md-4">
                 <div class="form-check">
@@ -2811,7 +2978,34 @@ export const ViewsHotel = {
                                     </div>
                                 </div>
                             </div>
-                            <button type="submit" class="btn btn-primary btn-lg mt-3"><i class="bi bi-save me-1"></i>Guardar Ajustes</button>
+
+                            <hr class="my-4">
+                            <h5 class="fw-bold text-primary mb-3"><i class="bi bi-file-earmark-pdf-fill me-2"></i>Configuración de Comprobantes, Serialización y Cabecera PDF</h5>
+                            
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Serie / Prefijo de Facturación</label>
+                                    <input type="text" class="form-control" id="profInvPrefix" value="${hotel.invoice_prefix || 'FAC-'}" placeholder="Ej: FAC-, SER-A, NE-">
+                                    <small class="text-muted">Prefijo impreso al inicio del número de cada comprobante.</small>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Próximo Número / Correlativo</label>
+                                    <input type="number" class="form-control" id="profInvNextNum" value="${hotel.invoice_next_number || 1}" min="1">
+                                    <small class="text-muted">Próximo número a asignar automáticamente.</small>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Cabecera / Subtítulo del PDF</label>
+                                <input type="text" class="form-control" id="profInvHeader" value="${hotel.invoice_header_notes || ''}" placeholder="Ej: COMPROBANTE DE HOSPEDAJE Y FACTURA DE CONSUMOS">
+                                <small class="text-muted">Texto o leyenda superior al lado del logo del hotel.</small>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Nota al Pie / Leyenda Tributaria o Legal</label>
+                                <textarea class="form-control" id="profInvFooter" rows="2" placeholder="Ej: Valores liquidados a la Tasa Oficial de Cambio emitida por el Banco Central de Venezuela (BCV). Gracias por su preferencia.">${hotel.invoice_footer_notes || ''}</textarea>
+                                <small class="text-muted">Nota impresa en la parte inferior de todas las facturas PDF descargadas.</small>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-lg mt-3"><i class="bi bi-save me-1"></i>Guardar Todos los Ajustes</button>
                         </form>
                     </div>
                 </div>
@@ -2849,10 +3043,15 @@ export const ViewsHotel = {
             const check_out_time = document.getElementById('profCheckOut').value;
             const primary_color = document.getElementById('profColor').value;
             const dark_mode = document.getElementById('profDarkMode').checked;
+            const invoice_prefix = document.getElementById('profInvPrefix').value;
+            const invoice_next_number = document.getElementById('profInvNextNum').value;
+            const invoice_header_notes = document.getElementById('profInvHeader').value;
+            const invoice_footer_notes = document.getElementById('profInvFooter').value;
 
             try {
                 const updatedHotel = await API.put('/hotels', {
-                    name, rif, phone, address, logo_url: currentLogoUrl, primary_color, dark_mode, check_in_time, check_out_time
+                    name, rif, phone, address, logo_url: currentLogoUrl, primary_color, dark_mode, check_in_time, check_out_time,
+                    invoice_prefix, invoice_next_number, invoice_header_notes, invoice_footer_notes
                 });
                 State.setHotel(updatedHotel);
                 State.toggleDarkMode(dark_mode);

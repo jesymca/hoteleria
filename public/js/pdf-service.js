@@ -10,16 +10,17 @@ export const PDFService = {
         doc.setFillColor(primaryColor);
         doc.rect(0, 0, 210, 28, 'F');
 
-        // Hotel Name in Header
+        // Hotel Name / Title in Header
         doc.setTextColor(255, 255, 255);
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(18);
+        doc.setFontSize(16);
         doc.text(hotel.name || 'ESTABLECIMIENTO HOTELERO', 14, 18);
 
-        // Subtitle
-        doc.setFontSize(10);
+        // Subtitle / Header Notes
+        const headerSubtitle = hotel.invoice_header_notes || 'COMPROBANTE DE HOSPEDAJE Y FACTURA DE CONSUMOS';
+        doc.setFontSize(9);
         doc.setFont('helvetica', 'normal');
-        doc.text('COMPROBANTE DE HOSPEDAJE Y FACTURA DE CONSUMOS', 140, 18);
+        doc.text(headerSubtitle.toUpperCase(), 196, 18, { align: 'right' });
 
         // Hotel RIF & Contact Info
         doc.setTextColor(50, 50, 50);
@@ -31,12 +32,16 @@ export const PDFService = {
         doc.text(`Teléfono: ${hotel.phone || 'N/A'}`, 14, currentY + 5);
         doc.text(`Dirección: ${hotel.address || 'N/A'}`, 14, currentY + 10);
 
-        // Invoice Number & BCV Info Box
+        // Invoice Serial & BCV Info Box
+        const prefix = hotel.invoice_prefix || 'FAC-';
+        const rawInvNum = invoice.invoice_number || invoice.invoiceNumber || '000001';
+        const formattedNum = rawInvNum.startsWith(prefix) ? rawInvNum : `${prefix}${rawInvNum}`;
+
         doc.setFont('helvetica', 'bold');
-        doc.text(`FACTURA N°: ${invoice.invoice_number || invoice.invoiceNumber}`, 140, currentY);
+        doc.text(`COMPROBANTE N°: ${formattedNum}`, 140, currentY);
         doc.setFont('helvetica', 'normal');
-        doc.text(`Fecha Emisión: ${new Date().toLocaleDateString('es-VE')}`, 140, currentY + 5);
-        doc.text(`Tasa Oficial BCV: Bs. ${Number(invoice.bcv_rate || invoice.bcvRate).toFixed(4)} / USD`, 140, currentY + 10);
+        doc.text(`Fecha Emisión: ${new Date(invoice.created_at || Date.now()).toLocaleDateString('es-VE')}`, 140, currentY + 5);
+        doc.text(`Tasa Oficial BCV: Bs. ${Number(invoice.bcv_rate || invoice.bcvRate || 40.0).toFixed(4)} / USD`, 140, currentY + 10);
 
         // Divider Line
         doc.setDrawColor(200, 200, 200);
@@ -67,7 +72,7 @@ export const PDFService = {
                 'Hospedaje - Tarifa Habitación',
                 `Estancia del ${booking.check_in_date} al ${booking.check_out_date}`,
                 `$${Number(invoice.subtotal_usd || invoice.subtotalUsd).toFixed(2)} USD`,
-                `Bs. ${(Number(invoice.subtotal_usd || invoice.subtotalUsd) * Number(invoice.bcv_rate || invoice.bcvRate)).toFixed(2)}`
+                `Bs. ${(Number(invoice.subtotal_usd || invoice.subtotalUsd) * Number(invoice.bcv_rate || invoice.bcvRate || 40.0)).toFixed(2)}`
             ]
         ];
 
@@ -76,7 +81,7 @@ export const PDFService = {
                 `Consumo Extra (${e.department_name || 'Servicio General'})`,
                 e.description,
                 `$${Number(e.amount_usd).toFixed(2)} USD`,
-                `Bs. ${(Number(e.amount_usd) * Number(invoice.bcv_rate || invoice.bcvRate)).toFixed(2)}`
+                `Bs. ${(Number(e.amount_usd) * Number(invoice.bcv_rate || invoice.bcvRate || 40.0)).toFixed(2)}`
             ]);
         });
 
@@ -104,26 +109,34 @@ export const PDFService = {
         doc.setTextColor(25, 135, 84);
         doc.text(`TOTAL EN BOLÍVARES: Bs. ${Number(invoice.total_ves || invoice.totalVes).toFixed(2)}`, 130, finalY + 22);
 
-        // Save PDF file
-        const pStatus = (invoice.payment_status || 'PAID') === 'PAID' ? 'PAGADO' : 'CRÉDITO / PENDIENTE';
-        const pColor = pStatus === 'PAGADO' ? [25, 135, 84] : [220, 53, 69];
+        // Payment Condition / Status Badge
+        const rawStatus = invoice.payment_status || 'PAID';
+        const pStatus = rawStatus === 'PAID' ? 'PAGADO' :
+                        rawStatus === 'CREDIT' ? 'CRÉDITO / PENDIENTE' :
+                        rawStatus === 'VOIDED' ? 'ANULADA / NULA' :
+                        rawStatus === 'REFUNDED' ? 'DEVOLUCIÓN / NOTA DE CRÉDITO' : 'PAGADO';
+
+        const pColor = rawStatus === 'PAID' ? [25, 135, 84] :
+                       rawStatus === 'CREDIT' ? [255, 193, 7] :
+                       rawStatus === 'VOIDED' ? [220, 53, 69] : [111, 66, 193];
 
         doc.setFillColor(...pColor);
-        doc.roundedRect(14, finalY + 4, 100, 16, 2, 2, 'F');
+        doc.roundedRect(14, finalY + 4, 110, 16, 2, 2, 'F');
         doc.setTextColor(255, 255, 255);
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(10);
-        doc.text(`CONDICIÓN DE PAGO: ${pStatus}`, 18, finalY + 14);
+        doc.setFontSize(9);
+        doc.text(`CONDICIÓN: ${pStatus}`, 18, finalY + 14);
 
-        // Footer Note
+        // Footer Custom Notes or Legal Disclaimer
+        const footerNote = hotel.invoice_footer_notes || 'Valores liquidados a la Tasa Oficial de Cambio emitida por el Banco Central de Venezuela (BCV). Gracias por su preferencia.';
         doc.setFontSize(8);
         doc.setTextColor(120, 120, 120);
         doc.setFont('helvetica', 'italic');
-        doc.text('Valores liquidados a la Tasa Oficial de Cambio emitida por el Banco Central de Venezuela (BCV). Gracias por su preferencia.', 14, 280);
+        doc.text(footerNote, 14, 280, { maxWidth: 180 });
 
         // Save PDF file
         const safeHotelName = (hotel.name || 'Hotel').replace(/[^\w\s-]/gi, '').replace(/\s+/g, '_');
-        const fileName = `Factura_${safeHotelName}_${invoice.invoice_number || invoice.invoiceNumber}.pdf`;
+        const fileName = `Factura_${safeHotelName}_${formattedNum}.pdf`;
         doc.save(fileName);
     }
 };
