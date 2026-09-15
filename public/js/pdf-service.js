@@ -51,15 +51,18 @@ export const PDFService = {
         let logoXShift = 0;
 
         if (showLogo && hotel.logo_url) {
-            const logoDataUrl = await fetchImageAsDataURL(hotel.logo_url);
-            if (logoDataUrl) {
-                try {
-                    const format = logoDataUrl.includes('image/jpeg') || logoDataUrl.includes('image/jpg') ? 'JPEG' : 'PNG';
-                    doc.addImage(logoDataUrl, format, 14, 3, 22, 22);
-                    logoXShift = 26;
-                } catch (e) {
-                    console.warn('doc.addImage error:', e);
+            try {
+                const logoDataUrl = await fetchImageAsDataURL(hotel.logo_url);
+                if (logoDataUrl) {
+                    try {
+                        doc.addImage(logoDataUrl, 14, 3, 22, 22);
+                        logoXShift = 26;
+                    } catch (e) {
+                        console.warn('doc.addImage error:', e);
+                    }
                 }
+            } catch (err) {
+                console.warn('fetchImageAsDataURL error:', err);
             }
         }
 

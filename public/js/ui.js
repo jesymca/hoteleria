@@ -58,15 +58,34 @@ export const UI = {
         };
     },
 
-    showModal({ title, bodyHtml, footerHtml }) {
+    showModal({ title, bodyHtml, footerHtml, footerButtons }) {
         const modalEl = document.getElementById('dynamicModal');
         const modalTitle = document.getElementById('dynamicModalTitle');
         const modalBody = document.getElementById('dynamicModalBody');
         const modalFooter = document.getElementById('dynamicModalFooter');
 
-        modalTitle.textContent = title;
-        modalBody.innerHTML = bodyHtml;
-        modalFooter.innerHTML = footerHtml || `<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>`;
+        modalTitle.textContent = title || '';
+        modalBody.innerHTML = bodyHtml || '';
+
+        if (footerButtons && Array.isArray(footerButtons) && footerButtons.length > 0) {
+            modalFooter.innerHTML = footerButtons.map((btn, idx) => {
+                const dismiss = btn.dismiss ? 'data-bs-dismiss="modal"' : '';
+                return `<button type="button" class="btn ${btn.class || 'btn-secondary'}" id="modalFooterBtn_${idx}" ${dismiss}>${btn.text}</button>`;
+            }).join('');
+
+            footerButtons.forEach((btn, idx) => {
+                if (typeof btn.onClick === 'function') {
+                    const btnEl = document.getElementById(`modalFooterBtn_${idx}`);
+                    if (btnEl) {
+                        btnEl.onclick = btn.onClick;
+                    }
+                }
+            });
+        } else if (footerHtml) {
+            modalFooter.innerHTML = footerHtml;
+        } else {
+            modalFooter.innerHTML = `<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>`;
+        }
 
         let bsModal = bootstrap.Modal.getInstance(modalEl);
         if (!bsModal) {

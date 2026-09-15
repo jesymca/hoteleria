@@ -1863,7 +1863,14 @@ export const ViewsHotel = {
 
         try {
             const invoices = await API.get('/billing/invoices');
-            const hotel = State.getHotel();
+            let hotel = State.getHotel();
+            try {
+                const freshHotel = await API.get('/hotels');
+                if (freshHotel && freshHotel.id) {
+                    hotel = freshHotel;
+                    State.setHotel(freshHotel);
+                }
+            } catch (e) {}
 
             const invoicesMap = {};
             invoices.forEach(inv => { invoicesMap[inv.id] = inv; });
