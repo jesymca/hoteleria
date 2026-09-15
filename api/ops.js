@@ -802,6 +802,53 @@ export default async function handler(req, res) {
     }
 
     // Route: Bookings
+    if (urlPath.includes('/bookings/check-in')) {
+        if (req.method !== 'POST') return res.status(405).json({ error: 'Método no permitido' });
+        try {
+            const { bookingId } = req.body || {};
+            if (!bookingId) return res.status(400).json({ error: 'bookingId es requerido.' });
+            const bCheck = await db.execute({ sql: 'SELECT * FROM bookings WHERE id = ? AND hotel_id = ?', args: [bookingId, hotelId] });
+            if (bCheck.rows.length === 0) return res.status(404).json({ error: 'Reserva no encontrada.' });
+            const booking = bCheck.rows[0];
+            const nowIso = new Date().toISOString();
+            await db.execute({
+                sql: "UPDATE bookings SET status = 'CHECKED_IN', actual_check_in = ? WHERE id = ? AND hotel_id = ?",
+                args: [nowIso, bookingId, hotelId]
+            });
+            await db.execute({
+                sql: "UPDATE rooms SET status = 'OCCUPIED' WHERE id = ? AND hotel_id = ?",
+                args: [booking.room_id, hotelId]
+            });
+            return res.status(200).json({ message: 'Check-in de reserva confirmado exitosamente.' });
+        } catch (err) {
+            console.error('Confirm check-in error:', err);
+            return res.status(500).json({ error: 'Error al confirmar check-in.' });
+        }
+    }
+
+    if (urlPath.includes('/bookings/cancel')) {
+        if (req.method !== 'POST') return res.status(405).json({ error: 'Método no permitido' });
+        try {
+            const { bookingId } = req.body || {};
+            if (!bookingId) return res.status(400).json({ error: 'bookingId es requerido.' });
+            const bCheck = await db.execute({ sql: 'SELECT * FROM bookings WHERE id = ? AND hotel_id = ?', args: [bookingId, hotelId] });
+            if (bCheck.rows.length === 0) return res.status(404).json({ error: 'Reserva no encontrada.' });
+            const booking = bCheck.rows[0];
+            await db.execute({
+                sql: "UPDATE bookings SET status = 'CANCELLED' WHERE id = ? AND hotel_id = ?",
+                args: [bookingId, hotelId]
+            });
+            await db.execute({
+                sql: "UPDATE rooms SET status = 'AVAILABLE' WHERE id = ? AND hotel_id = ?",
+                args: [booking.room_id, hotelId]
+            });
+            return res.status(200).json({ message: 'Reserva cancelada exitosamente.' });
+        } catch (err) {
+            console.error('Cancel booking error:', err);
+            return res.status(500).json({ error: 'Error al cancelar reserva.' });
+        }
+    }
+
     if (urlPath.includes('/bookings')) {
         if (req.method === 'GET') {
             const statusFilter = req.query.status;
@@ -858,7 +905,9 @@ export default async function handler(req, res) {
                 });
 
                 if (isCheckInImmediate) {
-                    await db.execute({ sql: 'UPDATE rooms SET status = "OCCUPIED" WHERE id = ? AND hotel_id = ?', args: [roomId, hotelId] });
+                    await db.execute({ sql: "UPDATE rooms SET status = 'OCCUPIED' WHERE id = ? AND hotel_id = ?", args: [roomId, hotelId] });
+                } else {
+                    await db.execute({ sql: "UPDATE rooms SET status = 'RESERVED' WHERE id = ? AND hotel_id = ?", args: [roomId, hotelId] });
                 }
 
                 return res.status(201).json({ message: isCheckInImmediate ? 'Check-in realizado exitosamente.' : 'Reserva creada.', bookingId });
@@ -871,6 +920,20 @@ export default async function handler(req, res) {
 
     // Default Route: Rooms CRUD
     if (req.method === 'GET') {
+        // Auto-sync rooms status with active bookings to auto-repair any past state mismatch
+        await db.execute({
+            sql: `UPDATE rooms SET status = 'OCCUPIED' 
+                  WHERE hotel_id = ? AND status != 'OCCUPIED' 
+                  AND id IN (SELECT room_id FROM bookings WHERE hotel_id = ? AND status = 'CHECKED_IN')`,
+            args: [hotelId, hotelId]
+        });
+        await db.execute({
+            sql: `UPDATE rooms SET status = 'RESERVED' 
+                  WHERE hotel_id = ? AND status = 'AVAILABLE' 
+                  AND id IN (SELECT room_id FROM bookings WHERE hotel_id = ? AND status = 'RESERVED')`,
+            args: [hotelId, hotelId]
+        });
+
         const roomsRes = await db.execute({
             sql: `SELECT r.*, rt.name as room_type_name, rt.base_price_usd, rt.capacity
                   FROM rooms r

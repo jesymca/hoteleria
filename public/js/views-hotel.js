@@ -84,9 +84,13 @@ export const ViewsHotel = {
         container.innerHTML = `<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Cargando Rack de Habitaciones...</p></div>`;
 
         try {
-            const data = await API.get('/rooms');
-            const rooms = data.rooms || [];
-            const types = data.roomTypes || [];
+            const [roomsData, bookingsData] = await Promise.all([
+                API.get('/rooms'),
+                API.get('/bookings')
+            ]);
+            const rooms = roomsData.rooms || [];
+            const types = roomsData.roomTypes || [];
+            const bookings = bookingsData || [];
 
             const user = State.getUser();
             const isStaff = State.isStaff();
@@ -110,37 +114,46 @@ export const ViewsHotel = {
                 </div>
 
                 <!-- Legend Cards -->
-                <div class="row g-3 mb-4">
-                    <div class="col-6 col-md-3">
-                        <div class="p-3 border rounded shadow-sm d-flex align-items-center bg-white">
-                            <div class="rounded-circle p-2 bg-success text-white me-3"><i class="bi bi-check-lg fs-5"></i></div>
+                <div class="row g-2 mb-4">
+                    <div class="col">
+                        <div class="p-3 border rounded shadow-sm d-flex align-items-center bg-white h-100">
+                            <div class="rounded-circle p-2 bg-success text-white me-2 me-md-3"><i class="bi bi-check-lg fs-5"></i></div>
                             <div>
                                 <div class="text-muted small">Disponibles</div>
                                 <div class="fs-4 fw-bold text-success">${rooms.filter(r => r.status === 'AVAILABLE').length}</div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <div class="p-3 border rounded shadow-sm d-flex align-items-center bg-white">
-                            <div class="rounded-circle p-2 bg-danger text-white me-3"><i class="bi bi-person-fill fs-5"></i></div>
+                    <div class="col">
+                        <div class="p-3 border rounded shadow-sm d-flex align-items-center bg-white h-100">
+                            <div class="rounded-circle p-2 bg-primary text-white me-2 me-md-3"><i class="bi bi-calendar-event fs-5"></i></div>
+                            <div>
+                                <div class="text-muted small">Reservadas</div>
+                                <div class="fs-4 fw-bold text-primary">${rooms.filter(r => r.status === 'RESERVED').length}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="p-3 border rounded shadow-sm d-flex align-items-center bg-white h-100">
+                            <div class="rounded-circle p-2 bg-danger text-white me-2 me-md-3"><i class="bi bi-person-fill fs-5"></i></div>
                             <div>
                                 <div class="text-muted small">Ocupadas</div>
                                 <div class="fs-4 fw-bold text-danger">${rooms.filter(r => r.status === 'OCCUPIED').length}</div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <div class="p-3 border rounded shadow-sm d-flex align-items-center bg-white">
-                            <div class="rounded-circle p-2 bg-warning text-dark me-3"><i class="bi bi-brush-fill fs-5"></i></div>
+                    <div class="col">
+                        <div class="p-3 border rounded shadow-sm d-flex align-items-center bg-white h-100">
+                            <div class="rounded-circle p-2 bg-warning text-dark me-2 me-md-3"><i class="bi bi-brush-fill fs-5"></i></div>
                             <div>
                                 <div class="text-muted small">En Limpieza</div>
                                 <div class="fs-4 fw-bold text-warning">${rooms.filter(r => r.status === 'CLEANING').length}</div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <div class="p-3 border rounded shadow-sm d-flex align-items-center bg-white">
-                            <div class="rounded-circle p-2 bg-secondary text-white me-3"><i class="bi bi-tools fs-5"></i></div>
+                    <div class="col">
+                        <div class="p-3 border rounded shadow-sm d-flex align-items-center bg-white h-100">
+                            <div class="rounded-circle p-2 bg-secondary text-white me-2 me-md-3"><i class="bi bi-tools fs-5"></i></div>
                             <div>
                                 <div class="text-muted small">Mantenimiento</div>
                                 <div class="fs-4 fw-bold text-secondary">${rooms.filter(r => r.status === 'MAINTENANCE').length}</div>
@@ -158,12 +171,16 @@ export const ViewsHotel = {
             } else {
                 rooms.forEach(room => {
                     const statusClass = room.status === 'AVAILABLE' ? 'status-available' :
+                                        room.status === 'RESERVED' ? 'status-reserved' :
                                         room.status === 'OCCUPIED' ? 'status-occupied' :
                                         room.status === 'CLEANING' ? 'status-cleaning' : 'status-maintenance';
 
                     const statusBadgeText = room.status === 'AVAILABLE' ? 'Disponible 🟢' :
+                                            room.status === 'RESERVED' ? 'Reservada 🔵' :
                                             room.status === 'OCCUPIED' ? 'Ocupada 🔴' :
                                             room.status === 'CLEANING' ? 'En Limpieza 🟡' : 'Mantenimiento 🟠';
+
+                    const activeBooking = bookings.find(b => b.room_id === room.id && (b.status === 'RESERVED' || b.status === 'CHECKED_IN'));
 
                     html += `
                         <div class="col-12 col-sm-6 col-md-4 col-lg-3">
@@ -176,6 +193,7 @@ export const ViewsHotel = {
                                     <span class="badge room-badge rounded-pill">${statusBadgeText}</span>
                                 </div>
                                 <div class="mb-3">
+                                    ${activeBooking ? `<small class="text-primary fw-semibold d-block"><i class="bi bi-person-badge me-1"></i>${activeBooking.guest_name}</small>` : ''}
                                     <small class="text-secondary d-block"><i class="bi bi-card-text me-1"></i>${room.notes || 'Sin observaciones'}</small>
                                     ${room.cleaned_by ? `<small class="text-success d-block"><i class="bi bi-check-all me-1"></i>Limpia por: ${room.cleaned_by}</small>` : ''}
                                 </div>
@@ -184,6 +202,18 @@ export const ViewsHotel = {
                                         <button class="btn btn-sm btn-success w-100 btn-mark-clean" data-id="${room.id}">
                                             <i class="bi bi-stars me-1"></i>Marcar Limpia y Lista
                                         </button>
+                                    ` : room.status === 'RESERVED' ? `
+                                        <button class="btn btn-sm btn-success w-100 btn-rack-checkin-reserved mb-1 fw-bold" data-booking-id="${activeBooking ? activeBooking.id : ''}">
+                                            <i class="bi bi-box-arrow-in-right me-1"></i>Procesar Check-in
+                                        </button>
+                                        <div class="d-flex gap-1 w-100">
+                                            <button class="btn btn-sm btn-outline-primary flex-fill btn-rack-pos-cobro" data-id="${room.id}">
+                                                <i class="bi bi-cash-stack"></i> POS
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger flex-fill btn-rack-cancel-reserved" data-booking-id="${activeBooking ? activeBooking.id : ''}">
+                                                <i class="bi bi-x-circle"></i> Cancelar
+                                            </button>
+                                        </div>
                                     ` : room.status === 'AVAILABLE' ? `
                                         <button class="btn btn-sm btn-success w-100 btn-rack-checkin-room mb-1 fw-bold" data-id="${room.id}">
                                             <i class="bi bi-box-arrow-in-right me-1"></i>Check-in aquí
@@ -217,7 +247,6 @@ export const ViewsHotel = {
 
             html += `</div>`;
             container.innerHTML = html;
-            container.innerHTML = html;
 
             // Bind Action Listeners
             this.bindRackEvents(container, rooms, types);
@@ -238,6 +267,50 @@ export const ViewsHotel = {
             btn.onclick = () => {
                 const roomId = btn.getAttribute('data-id');
                 this.showCheckInModal(container, roomId);
+            };
+        });
+
+        // Check-in for RESERVED rooms
+        container.querySelectorAll('.btn-rack-checkin-reserved').forEach(btn => {
+            btn.onclick = async () => {
+                const bookingId = btn.getAttribute('data-booking-id');
+                if (!bookingId) {
+                    UI.showToast('No se encontró el ID de la reserva.', 'warning');
+                    return;
+                }
+                try {
+                    btn.disabled = true;
+                    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Procesando...`;
+                    const res = await API.post('/bookings/check-in', { bookingId });
+                    UI.showToast(res.message || 'Check-in de reserva confirmado.', 'success');
+                    this.renderRack(container);
+                } catch (e) {
+                    UI.showToast(e.message, 'danger');
+                    btn.disabled = false;
+                }
+            };
+        });
+
+        // Cancel for RESERVED rooms
+        container.querySelectorAll('.btn-rack-cancel-reserved').forEach(btn => {
+            btn.onclick = () => {
+                const bookingId = btn.getAttribute('data-booking-id');
+                if (!bookingId) return;
+                UI.confirm({
+                    title: 'Cancelar Reserva',
+                    message: '¿Está seguro de que desea cancelar esta reserva? La habitación quedará disponible.',
+                    confirmText: 'Sí, Cancelar Reserva',
+                    confirmBtnClass: 'btn-danger',
+                    onConfirm: async () => {
+                        try {
+                            const res = await API.post('/bookings/cancel', { bookingId });
+                            UI.showToast(res.message || 'Reserva cancelada.', 'info');
+                            this.renderRack(container);
+                        } catch (e) {
+                            UI.showToast(e.message, 'danger');
+                        }
+                    }
+                });
             };
         });
 
@@ -1533,6 +1606,13 @@ export const ViewsHotel = {
                                     <button class="btn btn-sm btn-outline-danger btn-checkout" data-id="${b.id}">
                                         <i class="bi bi-door-closed me-1"></i>Check-out
                                     </button>
+                                ` : b.status === 'RESERVED' ? `
+                                    <button class="btn btn-sm btn-success btn-confirm-checkin me-1" data-id="${b.id}">
+                                        <i class="bi bi-box-arrow-in-right me-1"></i>Confirmar Check-in
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger btn-cancel-booking" data-id="${b.id}">
+                                        <i class="bi bi-x-circle me-1"></i>Cancelar
+                                    </button>
                                 ` : ''}
                             </td>
                         </tr>
@@ -1569,6 +1649,44 @@ export const ViewsHotel = {
                             try {
                                 const result = await API.post('/bookings/checkout', { bookingId });
                                 UI.showToast(result.message, 'success');
+                                this.renderReservas(container);
+                            } catch (e) {
+                                UI.showToast(e.message, 'danger');
+                            }
+                        }
+                    });
+                };
+            });
+
+            // Confirm Check-in for Reserved Bookings
+            container.querySelectorAll('.btn-confirm-checkin').forEach(btn => {
+                btn.onclick = async () => {
+                    const bookingId = btn.getAttribute('data-id');
+                    try {
+                        btn.disabled = true;
+                        const result = await API.post('/bookings/check-in', { bookingId });
+                        UI.showToast(result.message || 'Check-in de reserva confirmado.', 'success');
+                        this.renderReservas(container);
+                    } catch (e) {
+                        UI.showToast(e.message, 'danger');
+                        btn.disabled = false;
+                    }
+                };
+            });
+
+            // Cancel Booking Buttons
+            container.querySelectorAll('.btn-cancel-booking').forEach(btn => {
+                btn.onclick = () => {
+                    const bookingId = btn.getAttribute('data-id');
+                    UI.confirm({
+                        title: 'Cancelar Reserva',
+                        message: '¿Está seguro de que desea cancelar esta reserva?',
+                        confirmText: 'Cancelar Reserva',
+                        confirmBtnClass: 'btn-danger',
+                        onConfirm: async () => {
+                            try {
+                                const result = await API.post('/bookings/cancel', { bookingId });
+                                UI.showToast(result.message || 'Reserva cancelada.', 'info');
                                 this.renderReservas(container);
                             } catch (e) {
                                 UI.showToast(e.message, 'danger');

@@ -142,6 +142,15 @@ body {
     color: #000000;
 }
 
+.status-reserved {
+    border-color: #0d6efd !important;
+    background: linear-gradient(145deg, var(--card-bg), rgba(13, 110, 253, 0.08));
+}
+.status-reserved .room-badge {
+    background-color: #0d6efd;
+    color: #ffffff;
+}
+
 .status-maintenance {
     border-color: #fd7e14 !important;
     background: linear-gradient(145deg, var(--card-bg), rgba(253, 126, 20, 0.08));
