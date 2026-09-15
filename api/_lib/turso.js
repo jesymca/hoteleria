@@ -56,6 +56,7 @@ export async function initDB() {
         try { await db.execute("ALTER TABLE hotels ADD COLUMN invoice_next_number INTEGER DEFAULT 1"); } catch (e) {}
         try { await db.execute("ALTER TABLE hotels ADD COLUMN invoice_header_notes TEXT DEFAULT ''"); } catch (e) {}
         try { await db.execute("ALTER TABLE hotels ADD COLUMN invoice_footer_notes TEXT DEFAULT ''"); } catch (e) {}
+        try { await db.execute("ALTER TABLE hotels ADD COLUMN invoice_show_logo INTEGER DEFAULT 1"); } catch (e) {}
 
         await db.execute(`
             CREATE TABLE IF NOT EXISTS banks (

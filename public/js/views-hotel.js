@@ -3047,6 +3047,13 @@ export const ViewsHotel = {
                             <hr class="my-4">
                             <h5 class="fw-bold text-primary mb-3"><i class="bi bi-file-earmark-pdf-fill me-2"></i>Configuración de Comprobantes, Serialización y Cabecera PDF</h5>
                             
+                            <div class="form-check form-switch mb-3 p-2 bg-light rounded border">
+                                <input class="form-check-input ms-0 me-2" type="checkbox" id="profInvShowLogo" ${hotel.invoice_show_logo !== 0 ? 'checked' : ''}>
+                                <label class="form-check-label fw-bold text-dark" for="profInvShowLogo">
+                                    🖼️ Mostrar Logotipo del Hotel en los Comprobantes / Facturas PDF
+                                </label>
+                            </div>
+
                             <div class="row g-2 mb-3">
                                 <div class="col-md-6">
                                     <label class="form-label fw-bold">Serie / Prefijo de Facturación</label>
@@ -3112,11 +3119,12 @@ export const ViewsHotel = {
             const invoice_next_number = document.getElementById('profInvNextNum').value;
             const invoice_header_notes = document.getElementById('profInvHeader').value;
             const invoice_footer_notes = document.getElementById('profInvFooter').value;
+            const invoice_show_logo = document.getElementById('profInvShowLogo').checked;
 
             try {
                 const updatedHotel = await API.put('/hotels', {
                     name, rif, phone, address, logo_url: currentLogoUrl, primary_color, dark_mode, check_in_time, check_out_time,
-                    invoice_prefix, invoice_next_number, invoice_header_notes, invoice_footer_notes
+                    invoice_prefix, invoice_next_number, invoice_header_notes, invoice_footer_notes, invoice_show_logo
                 });
                 State.setHotel(updatedHotel);
                 State.toggleDarkMode(dark_mode);

@@ -10,11 +10,45 @@ export const PDFService = {
         doc.setFillColor(primaryColor);
         doc.rect(0, 0, 210, 28, 'F');
 
+        // Hotel Logo rendering if enabled
+        const showLogo = hotel.invoice_show_logo !== false && Number(hotel.invoice_show_logo) !== 0;
+        let logoXShift = 0;
+
+        if (showLogo && hotel.logo_url) {
+            try {
+                const logoBase64 = await new Promise((resolve) => {
+                    const img = new Image();
+                    img.crossOrigin = 'Anonymous';
+                    img.onload = () => {
+                        try {
+                            const canvas = document.createElement('canvas');
+                            canvas.width = img.width;
+                            canvas.height = img.height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0);
+                            resolve(canvas.toDataURL('image/png'));
+                        } catch (e) {
+                            resolve(null);
+                        }
+                    };
+                    img.onerror = () => resolve(null);
+                    img.src = hotel.logo_url;
+                });
+
+                if (logoBase64) {
+                    doc.addImage(logoBase64, 'PNG', 14, 3, 22, 22);
+                    logoXShift = 26;
+                }
+            } catch (e) {
+                console.warn('No se pudo renderizar el logo en el comprobante PDF:', e);
+            }
+        }
+
         // Hotel Name / Title in Header
         doc.setTextColor(255, 255, 255);
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(16);
-        doc.text(hotel.name || 'ESTABLECIMIENTO HOTELERO', 14, 18);
+        doc.text(hotel.name || 'ESTABLECIMIENTO HOTELERO', 14 + logoXShift, 18);
 
         // Subtitle / Header Notes
         const headerSubtitle = hotel.invoice_header_notes || 'COMPROBANTE DE HOSPEDAJE Y FACTURA DE CONSUMOS';

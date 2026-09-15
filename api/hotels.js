@@ -34,7 +34,8 @@ export default async function handler(req, res) {
             const { 
                 name, rif, phone, address, logo_url, primary_color, dark_mode, social_links, 
                 check_in_time, check_out_time,
-                invoice_prefix, invoice_next_number, invoice_header_notes, invoice_footer_notes
+                invoice_prefix, invoice_next_number, invoice_header_notes, invoice_footer_notes,
+                invoice_show_logo
             } = req.body || {};
 
             // Ensure no undefined values are passed to libSQL args
@@ -52,6 +53,7 @@ export default async function handler(req, res) {
             const safeInvNextNum = invoice_next_number !== undefined && invoice_next_number !== null ? parseInt(invoice_next_number) : null;
             const safeInvHeader = invoice_header_notes ?? null;
             const safeInvFooter = invoice_footer_notes ?? null;
+            const safeInvShowLogo = invoice_show_logo !== undefined && invoice_show_logo !== null ? (invoice_show_logo ? 1 : 0) : null;
 
             await db.execute({
                 sql: `UPDATE hotels 
@@ -68,12 +70,13 @@ export default async function handler(req, res) {
                     invoice_prefix = COALESCE(?, invoice_prefix),
                     invoice_next_number = COALESCE(?, invoice_next_number),
                     invoice_header_notes = COALESCE(?, invoice_header_notes),
-                    invoice_footer_notes = COALESCE(?, invoice_footer_notes)
+                    invoice_footer_notes = COALESCE(?, invoice_footer_notes),
+                    invoice_show_logo = COALESCE(?, invoice_show_logo)
                 WHERE id = ?`,
                 args: [
                     safeName, safeRif, safePhone, safeAddress, safeLogoUrl, safeColor, 
                     safeDarkMode, safeSocial, safeCheckIn, safeCheckOut,
-                    safeInvPrefix, safeInvNextNum, safeInvHeader, safeInvFooter,
+                    safeInvPrefix, safeInvNextNum, safeInvHeader, safeInvFooter, safeInvShowLogo,
                     hotelId
                 ]
             });
