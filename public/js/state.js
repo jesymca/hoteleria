@@ -76,6 +76,13 @@ export const State = {
         return localStorage.getItem('saas_recepcion_mode') === 'true';
     },
 
+    hasDepartmentPermission(deptType) {
+        const u = this.getUser();
+        if (!u) return false;
+        if (u.role === 'SUPERADMIN' || u.role === 'HOTEL_ADMIN') return true;
+        return Array.isArray(u.permissions) && u.permissions.includes(deptType);
+    },
+
     toggleRecepcionMode() {
         const current = localStorage.getItem('saas_recepcion_mode') === 'true';
         localStorage.setItem('saas_recepcion_mode', (!current).toString());

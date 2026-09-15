@@ -3,7 +3,7 @@ import { API } from './api.js';
 import { State } from './state.js';
 import { UI } from './ui.js';
 import { Uploader } from './uploader.js';
-import { PDFService } from './pdf.js';
+import { PDFService } from './pdf-service.js';
 // Helper CSV Utility for POS catalog imports
 const CSVUtil = {
     downloadTemplate(filename, content) {

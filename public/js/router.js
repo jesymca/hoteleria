@@ -31,7 +31,7 @@ export const Router = {
         if (!isAuthenticated || hash === '#inicio') {
             landingContainer.classList.remove('d-none');
             mainContainer.classList.add('d-none');
-            this.renderNavbar(navbarNav, null);
+            this.renderNavbar(navbarNav, user);
             return;
         }
 
@@ -382,8 +382,6 @@ export const Router = {
                 this.handleRoute();
             };
         }
-
-        navContainer.innerHTML = menuHtml;
 
         const btnLogout = document.getElementById('btnLogout');
         if (btnLogout) {
