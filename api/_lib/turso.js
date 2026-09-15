@@ -186,6 +186,52 @@ export async function initDB() {
                 total_usd REAL NOT NULL,
                 bcv_rate REAL NOT NULL,
                 total_ves REAL NOT NULL,
+                payment_status TEXT CHECK(payment_status IN ('PAID', 'PENDING', 'CREDIT')) DEFAULT 'PAID',
+                payment_method_id TEXT,
+                notes TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+
+        try { await db.execute("ALTER TABLE invoices ADD COLUMN payment_status TEXT DEFAULT 'PAID'"); } catch (e) {}
+        try { await db.execute("ALTER TABLE invoices ADD COLUMN payment_method_id TEXT"); } catch (e) {}
+        try { await db.execute("ALTER TABLE invoices ADD COLUMN notes TEXT"); } catch (e) {}
+
+        await db.execute(`
+            CREATE TABLE IF NOT EXISTS hotel_payment_methods (
+                id TEXT PRIMARY KEY,
+                hotel_id TEXT NOT NULL REFERENCES hotels(id),
+                name TEXT NOT NULL,
+                type TEXT CHECK(type IN ('CASH_USD', 'CASH_VES', 'TRANSFER', 'PAGO_MOVIL', 'POS', 'ZELLE', 'OTHER')) NOT NULL,
+                bank_name TEXT,
+                account_details TEXT,
+                requires_admin_validation INTEGER DEFAULT 1,
+                is_active INTEGER DEFAULT 1,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+
+        await db.execute(`
+            CREATE TABLE IF NOT EXISTS guest_payments (
+                id TEXT PRIMARY KEY,
+                hotel_id TEXT NOT NULL REFERENCES hotels(id),
+                booking_id TEXT NOT NULL REFERENCES bookings(id),
+                invoice_id TEXT REFERENCES invoices(id),
+                payment_method_id TEXT REFERENCES hotel_payment_methods(id),
+                method_name TEXT NOT NULL,
+                amount_usd REAL NOT NULL,
+                amount_ves REAL NOT NULL,
+                bcv_rate REAL NOT NULL,
+                reference_number TEXT,
+                bank_origin TEXT,
+                proof_url TEXT,
+                notes TEXT,
+                status TEXT CHECK(status IN ('PENDING_VALIDATION', 'VALIDATED', 'REJECTED')) DEFAULT 'VALIDATED',
+                registered_by_id TEXT REFERENCES users(id),
+                registered_by_name TEXT,
+                validated_by_id TEXT REFERENCES users(id),
+                validated_by_name TEXT,
+                validated_at DATETIME,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             );
         `);

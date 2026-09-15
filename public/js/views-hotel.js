@@ -94,14 +94,17 @@ export const ViewsHotel = {
                 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
                     <div>
                         <h2 class="fw-bold mb-1"><i class="bi bi-grid-3x3-gap-fill text-primary me-2"></i>Rack Visual de Habitaciones</h2>
-                        <p class="text-muted mb-0">Estado en tiempo real de la capacidad del establecimiento</p>
+                        <p class="text-muted mb-0">Estado en tiempo real de la capacidad y gestión de huéspedes</p>
                     </div>
-                    <div class="d-flex gap-2">
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button class="btn btn-success fw-bold shadow-sm" id="btnRackCheckIn"><i class="bi bi-box-arrow-in-right me-1"></i>Nuevo Check-in</button>
+                        <button class="btn btn-outline-info" id="btnPaymentMethods"><i class="bi bi-wallet2 me-1"></i>Medios de Pago</button>
                         ${!isStaff ? `
-                            <button class="btn btn-outline-primary" id="btnCreateRoomType"><i class="bi bi-tags-fill me-1"></i>Nuevo Estilo/Tipo</button>
+                            <button class="btn btn-outline-warning" id="btnAuditPayments"><i class="bi bi-shield-check me-1"></i>Validación de Pagos</button>
+                            <button class="btn btn-outline-primary" id="btnCreateRoomType"><i class="bi bi-tags-fill me-1"></i>Estilos/Tipos</button>
                             <button class="btn btn-primary" id="btnCreateRoom"><i class="bi bi-plus-lg me-1"></i>Nueva Habitación</button>
                         ` : ''}
-                        <button class="btn btn-success" id="btnQuickCleaningView"><i class="bi bi-stars me-1"></i>Vista Mucamas / Limpieza</button>
+                        <button class="btn btn-outline-secondary" id="btnQuickCleaningView"><i class="bi bi-stars me-1"></i>Mucamas</button>
                     </div>
                 </div>
 
@@ -129,7 +132,7 @@ export const ViewsHotel = {
                         <div class="p-3 border rounded shadow-sm d-flex align-items-center bg-white">
                             <div class="rounded-circle p-2 bg-warning text-dark me-3"><i class="bi bi-brush-fill fs-5"></i></div>
                             <div>
-                                <div class="text-muted small">En Limpieza (Mucamas)</div>
+                                <div class="text-muted small">En Limpieza</div>
                                 <div class="fs-4 fw-bold text-warning">${rooms.filter(r => r.status === 'CLEANING').length}</div>
                             </div>
                         </div>
@@ -175,24 +178,34 @@ export const ViewsHotel = {
                                     <small class="text-secondary d-block"><i class="bi bi-card-text me-1"></i>${room.notes || 'Sin observaciones'}</small>
                                     ${room.cleaned_by ? `<small class="text-success d-block"><i class="bi bi-check-all me-1"></i>Limpia por: ${room.cleaned_by}</small>` : ''}
                                 </div>
-                                <div class="mt-auto d-flex flex-wrap gap-1">
+                                <div class="mt-auto d-flex flex-column gap-1">
                                     ${room.status === 'CLEANING' ? `
                                         <button class="btn btn-sm btn-success w-100 btn-mark-clean" data-id="${room.id}">
                                             <i class="bi bi-stars me-1"></i>Marcar Limpia y Lista
                                         </button>
                                     ` : room.status === 'AVAILABLE' ? `
-                                        <button class="btn btn-sm btn-outline-danger btn-set-status" data-id="${room.id}" data-status="CLEANING">
-                                            <i class="bi bi-brush me-1"></i>Enviar a Limpieza
+                                        <button class="btn btn-sm btn-success w-100 btn-rack-checkin-room mb-1 fw-bold" data-id="${room.id}">
+                                            <i class="bi bi-box-arrow-in-right me-1"></i>Check-in aquí
                                         </button>
-                                        <button class="btn btn-sm btn-outline-warning btn-set-status" data-id="${room.id}" data-status="MAINTENANCE">
-                                            <i class="bi bi-tools me-1"></i>Mantenimiento
-                                        </button>
+                                        <div class="d-flex gap-1 w-100">
+                                            <button class="btn btn-sm btn-outline-danger flex-fill btn-set-status" data-id="${room.id}" data-status="CLEANING">
+                                                <i class="bi bi-brush"></i> Limpieza
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-warning flex-fill btn-set-status" data-id="${room.id}" data-status="MAINTENANCE">
+                                                <i class="bi bi-tools"></i> Mant.
+                                            </button>
+                                        </div>
                                     ` : room.status === 'MAINTENANCE' ? `
                                         <button class="btn btn-sm btn-outline-success btn-set-status" data-id="${room.id}" data-status="AVAILABLE">
                                             <i class="bi bi-check-circle me-1"></i>Habilitar Disponible
                                         </button>
                                     ` : `
-                                        <span class="badge bg-secondary w-100 py-2">En ocupación por huésped</span>
+                                        <button class="btn btn-sm btn-primary w-100 btn-rack-pos-cobro fw-bold mb-1" data-id="${room.id}">
+                                            <i class="bi bi-cash-stack me-1"></i>Cobrar / POS
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger w-100 btn-rack-checkout" data-id="${room.id}">
+                                            <i class="bi bi-box-arrow-right me-1"></i>Check-out
+                                        </button>
                                     `}
                                 </div>
                             </div>
@@ -203,6 +216,7 @@ export const ViewsHotel = {
 
             html += `</div>`;
             container.innerHTML = html;
+            container.innerHTML = html;
 
             // Bind Action Listeners
             this.bindRackEvents(container, rooms, types);
@@ -212,6 +226,48 @@ export const ViewsHotel = {
     },
 
     bindRackEvents(container, rooms, types) {
+        // Main Check-in Header Button
+        const btnRackCheckIn = container.querySelector('#btnRackCheckIn');
+        if (btnRackCheckIn) {
+            btnRackCheckIn.onclick = () => this.showCheckInModal(container);
+        }
+
+        // Room Card Check-in Buttons
+        container.querySelectorAll('.btn-rack-checkin-room').forEach(btn => {
+            btn.onclick = () => {
+                const roomId = btn.getAttribute('data-id');
+                this.showCheckInModal(container, roomId);
+            };
+        });
+
+        // Payment Methods Management Button
+        const btnPaymentMethods = container.querySelector('#btnPaymentMethods');
+        if (btnPaymentMethods) {
+            btnPaymentMethods.onclick = () => this.showPaymentMethodsModal(container);
+        }
+
+        // Audit & Validate Payments Button
+        const btnAuditPayments = container.querySelector('#btnAuditPayments');
+        if (btnAuditPayments) {
+            btnAuditPayments.onclick = () => this.showPaymentAuditModal(container);
+        }
+
+        // Room Card POS Cobro Buttons
+        container.querySelectorAll('.btn-rack-pos-cobro').forEach(btn => {
+            btn.onclick = () => {
+                const roomId = btn.getAttribute('data-id');
+                this.showPOSCobroModal(container, roomId, false);
+            };
+        });
+
+        // Room Card Check-out Buttons
+        container.querySelectorAll('.btn-rack-checkout').forEach(btn => {
+            btn.onclick = () => {
+                const roomId = btn.getAttribute('data-id');
+                this.showPOSCobroModal(container, roomId, true);
+            };
+        });
+
         // Quick Cleaning View Button
         const btnCleaning = container.querySelector('#btnQuickCleaningView');
         if (btnCleaning) {
@@ -694,6 +750,611 @@ export const ViewsHotel = {
         }
     },
 
+    // MODALES Y SERVICIOS DEL RACK Y RECEPCIÓN
+    async showCheckInModal(container, preselectedRoomId = null) {
+        let rooms = [];
+        let guests = [];
+        try {
+            const roomsData = await API.get('/rooms');
+            rooms = (roomsData.rooms || []).filter(r => r.status === 'AVAILABLE' || r.id === preselectedRoomId);
+            guests = await API.get('/guests');
+        } catch (e) {
+            UI.showToast('Error cargando datos para Check-in: ' + e.message, 'danger');
+            return;
+        }
+
+        const todayStr = new Date().toISOString().split('T')[0];
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+        UI.showModal({
+            title: '🛎️ Nuevo Check-in / Asignar Habitación Directa',
+            bodyHtml: `
+                <form id="formCheckInRack">
+                    <div class="card border-0 bg-light p-3 mb-3 rounded-3">
+                        <h6 class="fw-bold text-primary mb-2"><i class="bi bi-person-fill me-1"></i>1. Selección o Registro de Huésped</h6>
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-7">
+                                <label class="form-label small fw-semibold">Seleccionar Huésped Existente</label>
+                                <select class="form-select form-select-sm" id="ciGuestSelect">
+                                    <option value="">-- Registrar Nuevo Huésped A Continuación --</option>
+                                    ${guests.map(g => `<option value="${g.id}">${g.full_name} (${g.document_type || 'V'}-${g.document_id})</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="col-md-5 d-flex align-items-end">
+                                <small class="text-muted">Si no existe en la lista, llene los datos rápidos:</small>
+                            </div>
+                        </div>
+                        <div class="row g-2" id="quickGuestFields">
+                            <div class="col-md-6">
+                                <input type="text" class="form-control form-control-sm" id="ciGuestName" placeholder="Nombre completo del cliente">
+                            </div>
+                            <div class="col-md-2">
+                                <select class="form-select form-select-sm" id="ciGuestDocType">
+                                    <option value="V">V</option>
+                                    <option value="E">E</option>
+                                    <option value="J">J</option>
+                                    <option value="PASSPORT">Pasaporte</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="text" class="form-control form-control-sm" id="ciGuestDocId" placeholder="N° Cédula / RIF / ID">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 bg-light p-3 mb-3 rounded-3">
+                        <h6 class="fw-bold text-primary mb-2"><i class="bi bi-door-open-fill me-1"></i>2. Habitación, Período y Depósito</h6>
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Habitación Disponible</label>
+                                <select class="form-select form-select-sm" id="ciRoomSelect" required>
+                                    <option value="">-- Seleccionar Habitación --</option>
+                                    ${rooms.map(r => `<option value="${r.id}" data-price="${r.base_price_usd}" ${r.id === preselectedRoomId ? 'selected' : ''}>Hab. ${r.room_number} - ${r.room_type_name} ($${r.base_price_usd}/noche)</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-semibold">Entrada (Check-in)</label>
+                                <input type="date" class="form-control form-control-sm" id="ciCheckInDate" value="${todayStr}" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small fw-semibold">Salida Estimada</label>
+                                <input type="date" class="form-control form-control-sm" id="ciCheckOutDate" value="${tomorrowStr}" required>
+                            </div>
+                        </div>
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Depósito / Abono Inicial ($USD)</label>
+                                <input type="number" step="0.01" class="form-control form-control-sm" id="ciDeposit" value="0.00">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Observaciones / Notas</label>
+                                <input type="text" class="form-control form-control-sm" id="ciNotes" placeholder="Ej: Abono de garantía en dólares">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            `,
+            footerButtons: [
+                { text: 'Cancelar', class: 'btn-secondary', dismiss: true },
+                {
+                    text: ' Confirmar Check-in Directo',
+                    class: 'btn-success fw-bold',
+                    onClick: async () => {
+                        let guestId = document.getElementById('ciGuestSelect').value;
+                        if (!guestId) {
+                            const name = document.getElementById('ciGuestName').value.trim();
+                            const docType = document.getElementById('ciGuestDocType').value;
+                            const docId = document.getElementById('ciGuestDocId').value.trim();
+                            if (!name || !docId) {
+                                UI.showToast('Debe seleccionar un huésped existente o ingresar Nombre y N° Documento.', 'danger');
+                                return;
+                            }
+                            try {
+                                const newG = await API.post('/guests', { fullName: name, documentType: docType, documentId: docId });
+                                guestId = newG.guest.id;
+                            } catch (err) {
+                                UI.showToast('Error al registrar huésped: ' + err.message, 'danger');
+                                return;
+                            }
+                        }
+
+                        const roomId = document.getElementById('ciRoomSelect').value;
+                        const checkInDate = document.getElementById('ciCheckInDate').value;
+                        const checkOutDate = document.getElementById('ciCheckOutDate').value;
+                        const depositUsd = document.getElementById('ciDeposit').value || 0;
+                        const notes = document.getElementById('ciNotes').value;
+
+                        if (!roomId) {
+                            UI.showToast('Por favor seleccione una habitación.', 'warning');
+                            return;
+                        }
+
+                        const roomOption = document.querySelector(`#ciRoomSelect option[value="${roomId}"]`);
+                        const nightPrice = roomOption ? parseFloat(roomOption.getAttribute('data-price') || 0) : 0;
+                        const d1 = new Date(checkInDate);
+                        const d2 = new Date(checkOutDate);
+                        const diffDays = Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)));
+                        const totalAmountUsd = nightPrice * diffDays;
+
+                        try {
+                            await API.post('/bookings', {
+                                roomId,
+                                guestId,
+                                checkInDate,
+                                checkOutDate,
+                                depositUsd,
+                                totalAmountUsd,
+                                notes,
+                                isCheckInImmediate: true
+                            });
+
+                            UI.showToast('Check-in realizado exitosamente. Habitación ocupada.', 'success');
+                            bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
+                            this.renderRack(container);
+                        } catch (err) {
+                            UI.showToast('Error al realizar Check-in: ' + err.message, 'danger');
+                        }
+                    }
+                }
+            ]
+        });
+    },
+
+    async showPOSCobroModal(container, roomId, isCheckout = false) {
+        try {
+            const bookings = await API.get('/bookings?status=CHECKED_IN');
+            const booking = bookings.find(b => b.room_id === roomId);
+            if (!booking) {
+                UI.showToast('No hay una ocupación activa en esta habitación.', 'warning');
+                return;
+            }
+
+            const expenses = await API.get(`/expenses?bookingId=${booking.id}`);
+            const totalExpensesUsd = expenses.reduce((acc, e) => acc + Number(e.amount_usd || 0), 0);
+            const subtotalUsd = Number(booking.total_amount_usd);
+            const totalUsd = subtotalUsd + totalExpensesUsd;
+
+            const bcvRateData = await API.get('/billing/bcv');
+            const bcvRate = Number(bcvRateData.promedio || 40.0);
+            const totalVes = totalUsd * bcvRate;
+
+            const paymentMethods = await API.get('/payment-methods');
+            const activeMethods = paymentMethods.filter(m => Number(m.is_active) === 1);
+
+            UI.showModal({
+                title: isCheckout ? '🧾 Check-out & Cobro Final POS' : '💳 POS de Recepción - Registrar Cobro',
+                bodyHtml: `
+                    <div class="card border-0 bg-light p-3 mb-3 rounded-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="fw-bold text-primary mb-0"><i class="bi bi-person-badge-fill me-1"></i>Detalles de Ocupación</h6>
+                            <span class="badge bg-primary fs-6">Hab. ${booking.room_number}</span>
+                        </div>
+                        <p class="mb-1"><strong>Huésped:</strong> ${booking.guest_name} (${booking.document_type || 'V'}-${booking.document_id})</p>
+                        <p class="mb-0 small text-muted"><strong>Período:</strong> ${booking.check_in_date} al ${booking.check_out_date}</p>
+                    </div>
+
+                    <!-- Account Balance Summary -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-6 col-md-3">
+                            <div class="p-2 border rounded bg-white text-center">
+                                <small class="text-muted d-block">Hospedaje</small>
+                                <span class="fw-bold text-dark">$${subtotalUsd.toFixed(2)}</span>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="p-2 border rounded bg-white text-center">
+                                <small class="text-muted d-block">Consumos Extras (${expenses.length})</small>
+                                <span class="fw-bold text-dark">$${totalExpensesUsd.toFixed(2)}</span>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="p-2 border rounded bg-white text-center">
+                                <small class="text-muted d-block">TOTAL USD</small>
+                                <span class="fw-bold text-primary fs-5">$${totalUsd.toFixed(2)}</span>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="p-2 border rounded bg-white text-center">
+                                <small class="text-muted d-block">TOTAL VES (BCV ${bcvRate.toFixed(2)})</small>
+                                <span class="fw-bold text-success fs-6">Bs. ${totalVes.toFixed(2)}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment Form POS -->
+                    <div class="card border-0 bg-white p-3 border rounded-3 shadow-sm">
+                        <h6 class="fw-bold text-dark mb-3"><i class="bi bi-wallet2 me-1 text-success"></i>Forma y Datos de Pago</h6>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small">Seleccionar Medio de Pago Configurado</label>
+                            <select class="form-select form-select-sm" id="posMethodSelect">
+                                <option value="">-- Seleccionar Forma de Pago --</option>
+                                ${activeMethods.map(m => `<option value="${m.id}" data-reqval="${m.requires_admin_validation}" data-details="${m.account_details || ''}" data-bank="${m.bank_name || ''}">${m.name} (${Number(m.requires_admin_validation) === 1 ? '⚠️ Requiere Validación Admin' : '✅ Confirmación Inmediata'})</option>`).join('')}
+                            </select>
+                        </div>
+
+                        <div id="posMethodDetailsBox" class="alert alert-info small d-none py-2 mb-3">
+                            <i class="bi bi-info-circle-fill me-1"></i><span id="posMethodDetailsText"></span>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold small">Monto Recibido / Cobrado ($USD)</label>
+                                <input type="number" step="0.01" class="form-control form-control-sm" id="posAmountUsd" value="${totalUsd.toFixed(2)}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold small">Banco Origen / Entidad (Si es Transferencia)</label>
+                                <input type="text" class="form-control form-control-sm" id="posBankOrigin" placeholder="Ej: BNC, Banco de Venezuela, Mercantil">
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold small">N° de Referencia / Comprobante</label>
+                                <input type="text" class="form-control form-control-sm" id="posRefNumber" placeholder="Ej: 00289182">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold small">Notas de Recepción</label>
+                                <input type="text" class="form-control form-control-sm" id="posNotes" placeholder="Observaciones adicionales">
+                            </div>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label fw-semibold small d-block">Condición de Pago / Facturación</label>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="posStatusRadio" id="posPaidRadio" value="PAID" checked>
+                                <label class="form-check-label text-success fw-bold" for="posPaidRadio">🟢 PAGADO COMPLETAMENTE</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="posStatusRadio" id="posCreditRadio" value="CREDIT">
+                                <label class="form-check-label text-warning fw-bold" for="posCreditRadio">🟡 LÍNEA DE CRÉDITO / PENDIENTE</label>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                footerButtons: [
+                    { text: 'Cancelar', class: 'btn-secondary', dismiss: true },
+                    {
+                        text: isCheckout ? ' Confirmar Check-out & Emitir Factura' : ' Registrar Pago POS',
+                        class: isCheckout ? 'btn-danger fw-bold' : 'btn-primary fw-bold',
+                        onClick: async () => {
+                            const methodId = document.getElementById('posMethodSelect').value;
+                            const amountUsd = document.getElementById('posAmountUsd').value;
+                            const bankOrigin = document.getElementById('posBankOrigin').value;
+                            const referenceNumber = document.getElementById('posRefNumber').value;
+                            const notes = document.getElementById('posNotes').value;
+                            const paymentStatus = document.querySelector('input[name="posStatusRadio"]:checked').value;
+
+                            if (!methodId && paymentStatus === 'PAID') {
+                                UI.showToast('Por favor seleccione una Forma de Pago.', 'warning');
+                                return;
+                            }
+
+                            try {
+                                if (isCheckout) {
+                                    const checkoutRes = await API.post('/bookings/checkout', {
+                                        bookingId: booking.id,
+                                        paymentStatus,
+                                        paymentMethodId: methodId,
+                                        referenceNumber,
+                                        bankOrigin,
+                                        notes
+                                    });
+                                    UI.showToast(checkoutRes.message || 'Check-out procesado exitosamente.', 'success');
+                                } else {
+                                    const payRes = await API.post('/guest-payments', {
+                                        bookingId: booking.id,
+                                        paymentMethodId: methodId,
+                                        amountUsd,
+                                        referenceNumber,
+                                        bankOrigin,
+                                        notes
+                                    });
+                                    UI.showToast(payRes.message, 'success');
+                                }
+
+                                bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
+                                this.renderRack(container);
+                            } catch (err) {
+                                UI.showToast('Error al registrar cobro: ' + err.message, 'danger');
+                            }
+                        }
+                    }
+                ]
+            });
+
+            setTimeout(() => {
+                const selectEl = document.getElementById('posMethodSelect');
+                const detailsBox = document.getElementById('posMethodDetailsBox');
+                const detailsText = document.getElementById('posMethodDetailsText');
+
+                if (selectEl) {
+                    selectEl.onchange = () => {
+                        const selected = selectEl.options[selectEl.selectedIndex];
+                        if (selected && selected.value) {
+                            const bank = selected.getAttribute('data-bank');
+                            const details = selected.getAttribute('data-details');
+                            const reqval = Number(selected.getAttribute('data-reqval')) === 1;
+
+                            detailsText.innerHTML = `<strong>${bank ? bank + ': ' : ''}</strong>${details || 'Sin detalles extra'}<br>${reqval ? '⚠️ Note: Las transferencias en esta opción quedan sujetas a aprobación por Administración.' : '✅ Pago validado automáticamente.'}`;
+                            detailsBox.classList.remove('d-none');
+                        } else {
+                            detailsBox.classList.add('d-none');
+                        }
+                    };
+                }
+            }, 100);
+
+        } catch (e) {
+            UI.showToast('Error al preparar cobro POS: ' + e.message, 'danger');
+        }
+    },
+
+    async showPaymentMethodsModal(container) {
+        let methods = [];
+        try {
+            methods = await API.get('/payment-methods');
+        } catch (e) {
+            UI.showToast('Error cargando medios de pago: ' + e.message, 'danger');
+            return;
+        }
+
+        const renderModalBody = () => {
+            UI.showModal({
+                title: '💳 Configuración de Formas y Medios de Pago del Hotel',
+                bodyHtml: `
+                    <div class="card border-0 bg-light p-3 mb-4 rounded-3">
+                        <h6 class="fw-bold text-primary mb-2"><i class="bi bi-plus-circle-fill me-1"></i>Agregar Nueva Forma de Pago</h6>
+                        <form id="formAddPaymentMethod">
+                            <div class="row g-2 mb-2">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold">Nombre del Método</label>
+                                    <input type="text" class="form-control form-control-sm" id="pmName" placeholder="Ej: Transferencia BNC, Pago Móvil BDV, Zelle" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold">Tipo de Forma de Pago</label>
+                                    <select class="form-select form-select-sm" id="pmType" required>
+                                        <option value="TRANSFER">Transferencia Bancaria</option>
+                                        <option value="PAGO_MOVIL">Pago Móvil Interbancario</option>
+                                        <option value="CASH_USD">Efectivo Dólares (USD)</option>
+                                        <option value="CASH_VES">Efectivo Bolívares (VES)</option>
+                                        <option value="POS">Punto de Venta (POS)</option>
+                                        <option value="ZELLE">Zelle / Transferencia USD</option>
+                                        <option value="OTHER">Otro Medio</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold">Banco / Entidad Financiadora</label>
+                                    <input type="text" class="form-control form-control-sm" id="pmBankName" placeholder="Ej: Banco Nacional de Crédito (0191)">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold">Datos de la Cuenta / Destino</label>
+                                    <input type="text" class="form-control form-control-sm" id="pmAccountDetails" placeholder="RIF, N° Cuenta, Teléfono">
+                                </div>
+                            </div>
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="pmRequiresAdmin" checked>
+                                <label class="form-check-label fw-semibold small" for="pmRequiresAdmin">
+                                    🔒 Requiere Validación por Administración (Los pagos de Recepción quedarán en PENDING_VALIDATION hasta ser auditados)
+                                </label>
+                            </div>
+                            <button type="button" class="btn btn-primary btn-sm w-100 fw-bold" id="btnSavePaymentMethod">
+                                <i class="bi bi-save me-1"></i>Guardar Forma de Pago
+                            </button>
+                        </form>
+                    </div>
+
+                    <h6 class="fw-bold text-dark mb-2"><i class="bi bi-list-check me-1 text-primary"></i>Medios de Pago Habilitados (${methods.length})</h6>
+                    <div class="table-responsive border rounded custom-scroll" style="max-height: 280px; overflow-y: auto;">
+                        <table class="table table-sm table-hover align-middle mb-0 small">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th>Forma de Pago</th>
+                                    <th>Banco / Entidad</th>
+                                    <th>Validación Admin</th>
+                                    <th>Estado</th>
+                                    <th class="text-end">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${methods.length === 0 ? `<tr><td colspan="5" class="text-center py-3 text-muted">No hay medios de pago configurados.</td></tr>` : ''}
+                                ${methods.map(m => `
+                                    <tr>
+                                        <td>
+                                            <strong class="text-dark">${m.name}</strong>
+                                            <small class="d-block text-muted">${m.account_details || ''}</small>
+                                        </td>
+                                        <td>${m.bank_name || 'N/A'}</td>
+                                        <td>
+                                            ${Number(m.requires_admin_validation) === 1 
+                                                ? '<span class="badge bg-warning text-dark"><i class="bi bi-shield-lock me-1"></i>Sí (Req. Admin)</span>' 
+                                                : '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>No (Confirmación Directa)</span>'}
+                                        </td>
+                                        <td>
+                                            ${Number(m.is_active) === 1 
+                                                ? '<span class="badge bg-success">Activo</span>' 
+                                                : '<span class="badge bg-secondary">Inactivo</span>'}
+                                        </td>
+                                        <td class="text-end">
+                                            <button class="btn btn-xs btn-outline-primary btn-toggle-pm-val me-1" data-id="${m.id}" data-reqval="${m.requires_admin_validation}">
+                                                <i class="bi bi-sliders me-1"></i>${Number(m.requires_admin_validation) === 1 ? 'Quitar Req. Admin' : 'Exigir Req. Admin'}
+                                            </button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `,
+                footerButtons: [
+                    { text: 'Cerrar', class: 'btn-secondary', dismiss: true }
+                ]
+            });
+
+            setTimeout(() => {
+                const btnSave = document.getElementById('btnSavePaymentMethod');
+                if (btnSave) {
+                    btnSave.onclick = async () => {
+                        const name = document.getElementById('pmName').value.trim();
+                        const type = document.getElementById('pmType').value;
+                        const bankName = document.getElementById('pmBankName').value.trim();
+                        const accountDetails = document.getElementById('pmAccountDetails').value.trim();
+                        const requiresAdminValidation = document.getElementById('pmRequiresAdmin').checked;
+
+                        if (!name) {
+                            UI.showToast('Por favor ingrese el nombre de la forma de pago.', 'warning');
+                            return;
+                        }
+
+                        try {
+                            await API.post('/payment-methods', { name, type, bankName, accountDetails, requiresAdminValidation });
+                            UI.showToast('Forma de pago registrada.', 'success');
+                            methods = await API.get('/payment-methods');
+                            renderModalBody();
+                        } catch (err) {
+                            UI.showToast(err.message, 'danger');
+                        }
+                    };
+                }
+
+                document.querySelectorAll('.btn-toggle-pm-val').forEach(btn => {
+                    btn.onclick = async () => {
+                        const id = btn.getAttribute('data-id');
+                        const curReq = Number(btn.getAttribute('data-reqval')) === 1;
+                        const targetM = methods.find(m => m.id === id);
+                        if (targetM) {
+                            try {
+                                await API.put('/payment-methods', {
+                                    id,
+                                    name: targetM.name,
+                                    bankName: targetM.bank_name,
+                                    accountDetails: targetM.account_details,
+                                    requiresAdminValidation: !curReq,
+                                    isActive: Number(targetM.is_active) === 1
+                                });
+                                UI.showToast('Requisito de validación actualizado.', 'info');
+                                methods = await API.get('/payment-methods');
+                                renderModalBody();
+                            } catch (err) {
+                                UI.showToast(err.message, 'danger');
+                            }
+                        }
+                    };
+                });
+            }, 100);
+        };
+
+        renderModalBody();
+    },
+
+    async showPaymentAuditModal(container) {
+        let payments = [];
+        try {
+            payments = await API.get('/guest-payments?status=PENDING_VALIDATION');
+        } catch (e) {
+            UI.showToast('Error al cargar pagos pendientes de validación: ' + e.message, 'danger');
+            return;
+        }
+
+        const renderAuditBody = () => {
+            UI.showModal({
+                title: '🛡️ Panel Auditoría de Pagos y Transferencias',
+                bodyHtml: `
+                    <div class="alert alert-warning small mb-3">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                        <strong>Atención Administración:</strong> Aquí se presentan las transferencias y pagos reportados por el personal de Recepción que requieren verificación en los estados de cuenta bancarios del hotel.
+                    </div>
+
+                    <div class="table-responsive border rounded custom-scroll" style="max-height: 350px; overflow-y: auto;">
+                        <table class="table table-sm table-hover align-middle mb-0 small">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th>Fecha / Registro</th>
+                                    <th>Hab. / Huésped</th>
+                                    <th>Forma de Pago</th>
+                                    <th>Ref. / Banco Origen</th>
+                                    <th>Monto USD / VES</th>
+                                    <th class="text-end">Acción Auditoría</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${payments.length === 0 ? `<tr><td colspan="6" class="text-center py-4 text-muted"><i class="bi bi-check-all fs-4 d-block mb-1 text-success"></i>No hay pagos pendientes por validar. ¡Todo al día!</td></tr>` : ''}
+                                ${payments.map(p => `
+                                    <tr>
+                                        <td>
+                                            <small class="fw-bold d-block">${new Date(p.created_at).toLocaleDateString('es-VE')}</small>
+                                            <small class="text-muted">Por: ${p.registered_by_name || 'Recepción'}</small>
+                                        </td>
+                                        <td>
+                                            <strong class="text-primary">Hab. ${p.room_number}</strong>
+                                            <small class="d-block text-truncate" style="max-width: 130px;">${p.guest_name}</small>
+                                        </td>
+                                        <td><span class="badge bg-info text-dark">${p.method_name}</span></td>
+                                        <td>
+                                            <strong class="text-dark">${p.reference_number || 'S/N'}</strong>
+                                            <small class="d-block text-muted">${p.bank_origin || 'Sin banco'}</small>
+                                        </td>
+                                        <td>
+                                            <strong class="text-primary">$${Number(p.amount_usd).toFixed(2)} USD</strong>
+                                            <small class="d-block text-success fw-bold">Bs. ${Number(p.amount_ves).toFixed(2)}</small>
+                                        </td>
+                                        <td class="text-end">
+                                            <button class="btn btn-xs btn-success btn-validate-pay me-1" data-id="${p.id}">
+                                                <i class="bi bi-check-lg me-1"></i>Validar 🟢
+                                            </button>
+                                            <button class="btn btn-xs btn-outline-danger btn-reject-pay" data-id="${p.id}">
+                                                <i class="bi bi-x-lg me-1"></i>Rechazar 🔴
+                                            </button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `,
+                footerButtons: [
+                    { text: 'Cerrar', class: 'btn-secondary', dismiss: true }
+                ]
+            });
+
+            setTimeout(() => {
+                document.querySelectorAll('.btn-validate-pay').forEach(btn => {
+                    btn.onclick = async () => {
+                        const paymentId = btn.getAttribute('data-id');
+                        try {
+                            await API.put('/guest-payments', { paymentId, action: 'validate' });
+                            UI.showToast('Pago validado y aprobado exitosamente 🟢', 'success');
+                            payments = await API.get('/guest-payments?status=PENDING_VALIDATION');
+                            renderAuditBody();
+                        } catch (err) {
+                            UI.showToast(err.message, 'danger');
+                        }
+                    };
+                });
+
+                document.querySelectorAll('.btn-reject-pay').forEach(btn => {
+                    btn.onclick = async () => {
+                        const paymentId = btn.getAttribute('data-id');
+                        try {
+                            await API.put('/guest-payments', { paymentId, action: 'reject' });
+                            UI.showToast('Pago marcado como rechazado 🔴', 'warning');
+                            payments = await API.get('/guest-payments?status=PENDING_VALIDATION');
+                            renderAuditBody();
+                        } catch (err) {
+                            UI.showToast(err.message, 'danger');
+                        }
+                    };
+                });
+            }, 100);
+        };
+
+        renderAuditBody();
+    },
+
     // 2. VISTA DE LIMPIEZA PARA MUCAMAS Y PERSONAL DE ASEO
     async renderLimpieza(container) {
         container.innerHTML = `<div class="text-center py-5"><div class="spinner-border text-warning" role="status"></div><p class="mt-2">Cargando Panel de Limpieza...</p></div>`;
@@ -1156,23 +1817,26 @@ export const ViewsHotel = {
         }
     },
 
-    // 5. FACTURACIÓN E IMPRESIÓN PDF CON TASA BCV
+    // 5. FACTURACIÓN E IMPRESIÓN PDF CON TASA BCV Y GESTIÓN DE CRÉDITOS
     async renderFacturacion(container) {
-        container.innerHTML = `<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>`;
+        container.innerHTML = `<div class="text-center py-5"><div class="spinner-border text-primary"></div><p class="mt-2">Cargando Facturación e Historial...</p></div>`;
 
         try {
             const invoices = await API.get('/billing/invoices');
             const hotel = State.getHotel();
 
+            const invoicesMap = {};
+            invoices.forEach(inv => { invoicesMap[inv.id] = inv; });
+
             let html = `
                 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
                     <div>
-                        <h2 class="fw-bold mb-1"><i class="bi bi-file-earmark-pdf-fill text-primary me-2"></i>Facturación e Historial</h2>
-                        <p class="text-muted mb-0">Emisión formal de comprobantes en PDF con Tasa Oficial BCV</p>
+                        <h2 class="fw-bold mb-1"><i class="bi bi-file-earmark-pdf-fill text-primary me-2"></i>Facturación e Historial de Comprobantes</h2>
+                        <p class="text-muted mb-0">Gestión de recibos, emisión de PDF a Tasa BCV y control de líneas de crédito</p>
                     </div>
                 </div>
 
-                <div class="card border-0 shadow-sm rounded-3">
+                <div class="card border-0 shadow-sm rounded-4">
                     <div class="card-body p-0">
                         <div class="table-responsive">
                             <table class="table table-hover align-middle mb-0">
@@ -1182,10 +1846,10 @@ export const ViewsHotel = {
                                         <th>Huésped</th>
                                         <th>Habitación</th>
                                         <th>Total USD</th>
-                                        <th>Tasa BCV</th>
-                                        <th>Total VES</th>
+                                        <th>Total VES (BCV)</th>
+                                        <th>Condición / Estado</th>
                                         <th>Fecha</th>
-                                        <th class="text-end">Descargar</th>
+                                        <th class="text-end">Acciones / Comprobante</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1195,19 +1859,29 @@ export const ViewsHotel = {
                 html += `<tr><td colspan="8" class="text-center py-4 text-muted">No hay facturas emitidas aún. Realice un Check-out para generar un comprobante.</td></tr>`;
             } else {
                 invoices.forEach(inv => {
+                    const isPaid = (inv.payment_status || 'PAID') === 'PAID';
+                    const statusBadge = isPaid 
+                        ? `<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>PAGADO</span>`
+                        : `<span class="badge bg-warning text-dark"><i class="bi bi-clock-history me-1"></i>CRÉDITO PENDIENTE</span>`;
+
                     html += `
                         <tr>
                             <td><strong class="text-primary">${inv.invoice_number}</strong></td>
                             <td>${inv.guest_name}</td>
                             <td>Hab. ${inv.room_number}</td>
                             <td class="fw-bold">$${Number(inv.total_usd).toFixed(2)} USD</td>
-                            <td>Bs. ${Number(inv.bcv_rate).toFixed(4)}</td>
-                            <td class="fw-bold text-success">Bs. ${Number(inv.total_ves).toFixed(2)}</td>
+                            <td class="fw-bold text-success">Bs. ${Number(inv.total_ves).toFixed(2)} <small class="text-muted font-monospace">(tasa ${Number(inv.bcv_rate).toFixed(2)})</small></td>
+                            <td>${statusBadge}</td>
                             <td class="small text-muted">${new Date(inv.created_at).toLocaleDateString('es-VE')}</td>
                             <td class="text-end">
-                                <button class="btn btn-sm btn-outline-primary btn-download-pdf" data-inv='${JSON.stringify(inv)}'>
+                                <button class="btn btn-sm btn-outline-primary btn-download-pdf me-1" data-id="${inv.id}">
                                     <i class="bi bi-file-earmark-pdf me-1"></i>PDF Comprobante
                                 </button>
+                                ${!isPaid ? `
+                                    <button class="btn btn-sm btn-success btn-pay-invoice" data-id="${inv.id}">
+                                        <i class="bi bi-cash me-1"></i>Liquidar Pago
+                                    </button>
+                                ` : ''}
                             </td>
                         </tr>
                     `;
@@ -1224,21 +1898,83 @@ export const ViewsHotel = {
 
             container.innerHTML = html;
 
+            // Bind PDF download buttons
             container.querySelectorAll('.btn-download-pdf').forEach(btn => {
                 btn.onclick = async () => {
-                    const inv = JSON.parse(btn.getAttribute('data-inv'));
-                    const expenses = await API.get(`/expenses?bookingId=${inv.booking_id}`);
-                    const booking = {
-                        guest_name: inv.guest_name,
-                        document_type: inv.document_type,
-                        document_id: inv.document_id,
-                        room_number: inv.room_number,
-                        check_in_date: inv.check_in_date,
-                        check_out_date: inv.check_out_date
-                    };
-                    await PDFService.generateInvoicePDF(hotel, booking, inv, expenses);
+                    const invId = btn.getAttribute('data-id');
+                    const inv = invoicesMap[invId];
+                    if (!inv) return;
+
+                    try {
+                        btn.disabled = true;
+                        btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Generando...`;
+
+                        let expenses = [];
+                        try {
+                            expenses = await API.get(`/expenses?bookingId=${inv.booking_id}`);
+                        } catch (e) {}
+
+                        const booking = {
+                            guest_name: inv.guest_name,
+                            document_type: inv.document_type || 'V',
+                            document_id: inv.document_id || '',
+                            room_number: inv.room_number || '',
+                            room_type_name: inv.room_type_name || 'Estándar',
+                            check_in_date: inv.check_in_date || 'N/A',
+                            check_out_date: inv.check_out_date || 'N/A'
+                        };
+
+                        await PDFService.generateInvoicePDF(hotel || { name: 'Hotel' }, booking, inv, expenses);
+                        UI.showToast('PDF Comprobante generado correctamente 📄', 'success');
+                    } catch (err) {
+                        UI.showToast('Error al generar PDF: ' + err.message, 'danger');
+                    } finally {
+                        btn.disabled = false;
+                        btn.innerHTML = `<i class="bi bi-file-earmark-pdf me-1"></i>PDF Comprobante`;
+                    }
                 };
             });
+
+            // Bind Liquidate Payment for Credit Invoices
+            container.querySelectorAll('.btn-pay-invoice').forEach(btn => {
+                btn.onclick = async () => {
+                    const invId = btn.getAttribute('data-id');
+                    const inv = invoicesMap[invId];
+                    if (!inv) return;
+
+                    UI.showModal({
+                        title: '💳 Liquidar Factura con Línea de Crédito',
+                        bodyHtml: `
+                            <p><strong>Factura:</strong> ${inv.invoice_number}</p>
+                            <p><strong>Huésped:</strong> ${inv.guest_name}</p>
+                            <p class="fs-5 fw-bold text-primary">Monto Total: $${Number(inv.total_usd).toFixed(2)} USD (Bs. ${Number(inv.total_ves).toFixed(2)})</p>
+                            <div class="mb-3">
+                                <label class="form-label small fw-semibold">Notas / Observación del Pago</label>
+                                <input type="text" class="form-control" id="payInvNotes" placeholder="Ej: Pago total recibido por transferencia BNC">
+                            </div>
+                        `,
+                        footerButtons: [
+                            { text: 'Cancelar', class: 'btn-secondary', dismiss: true },
+                            {
+                                text: 'Marcar Factura como PAGADA 🟢',
+                                class: 'btn-success fw-bold',
+                                onClick: async () => {
+                                    const notes = document.getElementById('payInvNotes').value;
+                                    try {
+                                        await API.put('/billing/invoices', { invoiceId: inv.id, paymentStatus: 'PAID', notes });
+                                        UI.showToast('Factura marcada como PAGADA exitosamente 🟢', 'success');
+                                        bootstrap.Modal.getInstance(document.getElementById('dynamicModal')).hide();
+                                        this.renderFacturacion(container);
+                                    } catch (err) {
+                                        UI.showToast(err.message, 'danger');
+                                    }
+                                }
+                            }
+                        ]
+                    });
+                };
+            });
+
         } catch (err) {
             container.innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
         }

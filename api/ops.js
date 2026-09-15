@@ -45,7 +45,7 @@ export default async function handler(req, res) {
     if (urlPath.includes('/bookings/checkout')) {
         if (req.method !== 'POST') return res.status(405).json({ error: 'Método no permitido' });
         try {
-            const { bookingId } = req.body || {};
+            const { bookingId, paymentStatus, paymentMethodId, referenceNumber, bankOrigin, notes } = req.body || {};
             if (!bookingId) return res.status(400).json({ error: 'bookingId es requerido.' });
 
             const bRes = await db.execute({
@@ -95,13 +95,35 @@ export default async function handler(req, res) {
 
             const invoiceNumber = 'FAC-' + Date.now().toString().slice(-6);
             const invoiceId = 'inv_' + Date.now();
+            const invStatus = paymentStatus || 'PAID';
 
             await db.execute({
                 sql: `INSERT INTO invoices 
-                (id, hotel_id, booking_id, invoice_number, subtotal_usd, total_expenses_usd, total_usd, bcv_rate, total_ves)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                args: [invoiceId, hotelId, bookingId, invoiceNumber, subtotalUsd, totalExpensesUsd, totalUsd, bcvRate, totalVes]
+                (id, hotel_id, booking_id, invoice_number, subtotal_usd, total_expenses_usd, total_usd, bcv_rate, total_ves, payment_status, payment_method_id, notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                args: [invoiceId, hotelId, bookingId, invoiceNumber, subtotalUsd, totalExpensesUsd, totalUsd, bcvRate, totalVes, invStatus, paymentMethodId || null, notes || '']
             });
+
+            // If a payment method was provided at checkout, register the payment
+            if (paymentMethodId && invStatus === 'PAID') {
+                const pmRes = await db.execute({ sql: 'SELECT * FROM hotel_payment_methods WHERE id = ? AND hotel_id = ?', args: [paymentMethodId, hotelId] });
+                const pm = pmRes.rows[0];
+                const methodName = pm ? pm.name : 'Pago en Recepción';
+                const requiresValidation = pm ? (Number(pm.requires_admin_validation) === 1) : false;
+                const pStatus = requiresValidation ? 'PENDING_VALIDATION' : 'VALIDATED';
+
+                const paymentId = 'pay_' + Date.now();
+                await db.execute({
+                    sql: `INSERT INTO guest_payments 
+                    (id, hotel_id, booking_id, invoice_id, payment_method_id, method_name, amount_usd, amount_ves, bcv_rate, reference_number, bank_origin, notes, status, registered_by_id, registered_by_name)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    args: [
+                        paymentId, hotelId, bookingId, invoiceId, paymentMethodId, methodName,
+                        totalUsd, totalVes, bcvRate, referenceNumber || '', bankOrigin || '', notes || '',
+                        pStatus, auth.userId, auth.name
+                    ]
+                });
+            }
 
             return res.status(200).json({
                 message: 'Check-out procesado exitosamente. Habitación marcada EN LIMPIEZA para el personal de aseo.',
@@ -113,6 +135,7 @@ export default async function handler(req, res) {
                     totalUsd,
                     bcvRate,
                     totalVes,
+                    paymentStatus: invStatus,
                     guestName: booking.guest_name,
                     roomNumber: booking.room_number
                 }
@@ -120,6 +143,166 @@ export default async function handler(req, res) {
         } catch (err) {
             console.error('Checkout error:', err);
             return res.status(500).json({ error: 'Error al procesar el Check-out.' });
+        }
+    }
+
+    // Route: Payment Methods
+    if (urlPath.includes('/payment-methods')) {
+        if (req.method === 'GET') {
+            let pmRes = await db.execute({ sql: 'SELECT * FROM hotel_payment_methods WHERE hotel_id = ? ORDER BY name ASC', args: [hotelId] });
+            if (pmRes.rows.length === 0) {
+                // Seed default hotel payment methods
+                const defaultMethods = [
+                    { id: 'pm_usd_' + Date.now(), name: 'Efectivo Dólares (USD)', type: 'CASH_USD', bank_name: '', account_details: 'Pago en caja receptora', requires_val: 0 },
+                    { id: 'pm_ves_' + Date.now(), name: 'Efectivo Bolívares (VES)', type: 'CASH_VES', bank_name: '', account_details: 'Tasa Oficial BCV del día', requires_val: 0 },
+                    { id: 'pm_trans_' + Date.now(), name: 'Transferencia Bancaria (BNC / BDV)', type: 'TRANSFER', bank_name: 'Banco de Venezuela / BNC', account_details: 'RIF J-00000000-0 Cuenta Corriente', requires_val: 1 },
+                    { id: 'pm_pmov_' + Date.now(), name: 'Pago Móvil Interbancario', type: 'PAGO_MOVIL', bank_name: 'Banco de Venezuela (0102)', account_details: 'CI/RIF: 00000000 Tel: 0414-0000000', requires_val: 1 },
+                    { id: 'pm_pos_' + Date.now(), name: 'Punto de Venta / Tarjeta', type: 'POS', bank_name: 'Punto de Venta Recepción', account_details: 'Tarjetas Débito / Crédito', requires_val: 0 },
+                    { id: 'pm_zelle_' + Date.now(), name: 'Zelle / Transferencia USD', type: 'ZELLE', bank_name: 'Zelle USA', account_details: 'pagos@posada.com', requires_val: 1 }
+                ];
+                for (const m of defaultMethods) {
+                    await db.execute({
+                        sql: `INSERT INTO hotel_payment_methods (id, hotel_id, name, type, bank_name, account_details, requires_admin_validation, is_active)
+                              VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
+                        args: [m.id, hotelId, m.name, m.type, m.bank_name, m.account_details, m.requires_val]
+                    });
+                }
+                pmRes = await db.execute({ sql: 'SELECT * FROM hotel_payment_methods WHERE hotel_id = ? ORDER BY name ASC', args: [hotelId] });
+            }
+            return res.status(200).json(pmRes.rows);
+        }
+
+        if (req.method === 'POST') {
+            const { name, type, bankName, accountDetails, requiresAdminValidation } = req.body || {};
+            if (!name || !type) return res.status(400).json({ error: 'Nombre y tipo son requeridos.' });
+            const pmId = 'pm_' + Date.now();
+            await db.execute({
+                sql: `INSERT INTO hotel_payment_methods (id, hotel_id, name, type, bank_name, account_details, requires_admin_validation, is_active)
+                      VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
+                args: [pmId, hotelId, name, type, bankName || '', accountDetails || '', requiresAdminValidation ? 1 : 0]
+            });
+            return res.status(201).json({ message: 'Forma de pago registrada exitosamente.', id: pmId });
+        }
+
+        if (req.method === 'PUT') {
+            const { id, name, bankName, accountDetails, requiresAdminValidation, isActive } = req.body || {};
+            if (!id || !name) return res.status(400).json({ error: 'ID y Nombre son requeridos.' });
+            await db.execute({
+                sql: `UPDATE hotel_payment_methods 
+                      SET name = ?, bank_name = ?, account_details = ?, requires_admin_validation = ?, is_active = ?
+                      WHERE id = ? AND hotel_id = ?`,
+                args: [name, bankName || '', accountDetails || '', requiresAdminValidation ? 1 : 0, isActive !== undefined ? (isActive ? 1 : 0) : 1, id, hotelId]
+            });
+            return res.status(200).json({ message: 'Forma de pago actualizada.' });
+        }
+    }
+
+    // Route: Guest Payments & POS Cobros
+    if (urlPath.includes('/guest-payments')) {
+        if (req.method === 'GET') {
+            const bookingId = req.query.bookingId;
+            const statusFilter = req.query.status;
+            let sql = `
+                SELECT p.*, b.room_id, r.room_number, g.full_name as guest_name
+                FROM guest_payments p
+                JOIN bookings b ON p.booking_id = b.id
+                JOIN rooms r ON b.room_id = r.id
+                JOIN guests g ON b.guest_id = g.id
+                WHERE p.hotel_id = ?
+            `;
+            let args = [hotelId];
+            if (bookingId) {
+                sql += ' AND p.booking_id = ?';
+                args.push(bookingId);
+            }
+            if (statusFilter) {
+                sql += ' AND p.status = ?';
+                args.push(statusFilter);
+            }
+            sql += ' ORDER BY p.created_at DESC';
+            const payRes = await db.execute({ sql, args });
+            return res.status(200).json(payRes.rows);
+        }
+
+        if (req.method === 'POST') {
+            const { bookingId, invoiceId, paymentMethodId, amountUsd, referenceNumber, bankOrigin, notes } = req.body || {};
+            if (!bookingId || !paymentMethodId || !amountUsd) {
+                return res.status(400).json({ error: 'Reserva, forma de pago y monto son requeridos.' });
+            }
+
+            const pmRes = await db.execute({ sql: 'SELECT * FROM hotel_payment_methods WHERE id = ? AND hotel_id = ?', args: [paymentMethodId, hotelId] });
+            const pm = pmRes.rows[0];
+            if (!pm) return res.status(404).json({ error: 'Forma de pago no encontrada.' });
+
+            let bcvRate = 40.0;
+            try {
+                const bcvRes = await fetch('https://ve.dolarapi.com/v1/dolares/oficial');
+                if (bcvRes.ok) {
+                    const data = await bcvRes.json();
+                    if (data.promedio) bcvRate = parseFloat(data.promedio);
+                }
+            } catch (e) {
+                console.warn('Fallback BCV used:', e);
+            }
+
+            const amtUsd = parseFloat(amountUsd);
+            const amtVes = amtUsd * bcvRate;
+            const requiresValidation = Number(pm.requires_admin_validation) === 1;
+            const status = requiresValidation ? 'PENDING_VALIDATION' : 'VALIDATED';
+            const paymentId = 'pay_' + Date.now();
+
+            await db.execute({
+                sql: `INSERT INTO guest_payments 
+                (id, hotel_id, booking_id, invoice_id, payment_method_id, method_name, amount_usd, amount_ves, bcv_rate, reference_number, bank_origin, notes, status, registered_by_id, registered_by_name)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                args: [
+                    paymentId, hotelId, bookingId, invoiceId || null, paymentMethodId, pm.name,
+                    amtUsd, amtVes, bcvRate, referenceNumber || '', bankOrigin || '', notes || '',
+                    status, auth.userId, auth.name
+                ]
+            });
+
+            // Update booking deposit or invoice status if applicable
+            await db.execute({
+                sql: 'UPDATE bookings SET deposit_usd = deposit_usd + ? WHERE id = ? AND hotel_id = ?',
+                args: [amtUsd, bookingId, hotelId]
+            });
+
+            if (invoiceId) {
+                await db.execute({
+                    sql: "UPDATE invoices SET payment_status = 'PAID' WHERE id = ? AND hotel_id = ?",
+                    args: [invoiceId, hotelId]
+                });
+            }
+
+            return res.status(201).json({
+                message: requiresValidation 
+                    ? 'Pago registrado exitosamente por Recepción. En espera de validación por Administración.' 
+                    : 'Pago registrado y confirmado exitosamente.',
+                paymentId,
+                status
+            });
+        }
+
+        if (req.method === 'PUT') {
+            const { paymentId, action, notes } = req.body || {};
+            if (!paymentId || !action) return res.status(400).json({ error: 'paymentId y acción son requeridos.' });
+
+            if (auth.role !== 'HOTEL_ADMIN' && auth.role !== 'SUPERADMIN') {
+                return res.status(403).json({ error: 'Solo el Administrador del hotel o Staff de Administración pueden validar pagos.' });
+            }
+
+            const newStatus = action === 'validate' ? 'VALIDATED' : 'REJECTED';
+            const nowIso = new Date().toISOString();
+
+            await db.execute({
+                sql: `UPDATE guest_payments 
+                      SET status = ?, notes = COALESCE(?, notes), validated_by_id = ?, validated_by_name = ?, validated_at = ?
+                      WHERE id = ? AND hotel_id = ?`,
+                args: [newStatus, notes || null, auth.userId, auth.name, nowIso, paymentId, hotelId]
+            });
+
+            return res.status(200).json({ message: `Pago ${action === 'validate' ? 'validado' : 'rechazado'} correctamente.`, status: newStatus });
         }
     }
 

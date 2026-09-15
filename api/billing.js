@@ -55,11 +55,12 @@ export default async function handler(req, res) {
             const invRes = await db.execute({
                 sql: `SELECT i.*, b.check_in_date, b.check_out_date,
                              g.full_name as guest_name, g.document_type, g.document_id,
-                             r.room_number
+                             r.room_number, rt.name as room_type_name
                       FROM invoices i
                       JOIN bookings b ON i.booking_id = b.id
                       JOIN guests g ON b.guest_id = g.id
                       JOIN rooms r ON b.room_id = r.id
+                      LEFT JOIN room_types rt ON r.room_type_id = rt.id
                       WHERE i.hotel_id = ?
                       ORDER BY i.created_at DESC`,
                 args: [hotelId]
@@ -68,6 +69,23 @@ export default async function handler(req, res) {
         } catch (err) {
             console.error('Fetch invoices error:', err);
             return res.status(500).json({ error: 'Error al consultar facturas.' });
+        }
+    }
+
+    if (req.method === 'PUT') {
+        try {
+            const { invoiceId, paymentStatus, notes } = req.body || {};
+            if (!invoiceId || !paymentStatus) return res.status(400).json({ error: 'invoiceId y paymentStatus son requeridos.' });
+
+            await db.execute({
+                sql: 'UPDATE invoices SET payment_status = ?, notes = COALESCE(?, notes) WHERE id = ? AND hotel_id = ?',
+                args: [paymentStatus, notes || null, invoiceId, hotelId]
+            });
+
+            return res.status(200).json({ message: 'Estado de factura actualizado correctamente.' });
+        } catch (err) {
+            console.error('Update invoice error:', err);
+            return res.status(500).json({ error: 'Error al actualizar factura.' });
         }
     }
 

@@ -248,6 +248,8 @@ export const Router = {
 
         let menuHtml = `<ul class="navbar-nav me-auto mb-2 mb-lg-0 align-items-center gap-1">`;
 
+        const isRecepcion = State.isRecepcionOnly();
+
         if (isSuperAdmin) {
             menuHtml += `
                 <li class="nav-item"><a class="nav-link" href="#admin-comercios"><i class="bi bi-buildings me-1"></i>Comercios</a></li>
@@ -257,52 +259,11 @@ export const Router = {
                 <li class="nav-item"><a class="nav-link" href="#admin-metodos"><i class="bi bi-wallet2 me-1"></i>Métodos</a></li>
                 <li class="nav-item"><a class="nav-link" href="#admin-conectividad"><i class="bi bi-activity me-1"></i>Salud API</a></li>
             `;
-            const staffPosModules = [
-                { id: 'HOUSEKEEPING', hash: '#limpieza', label: 'Mucamas', icon: 'bi-stars', class: 'text-warning fw-bold' },
-                { id: 'RESTAURANT', hash: '#restaurante', label: 'Restaurante', icon: 'bi-utensils' },
-                { id: 'BAR', hash: '#bar', label: 'Bar', icon: 'bi-cup-straw' },
-                { id: 'SPA', hash: '#spa', label: 'Spa', icon: 'bi-flower1' },
-                { id: 'PELUQUERIA', hash: '#peluqueria', label: 'Peluquería', icon: 'bi-scissors' },
-                { id: 'GALERIA', hash: '#galeria', label: 'Galería', icon: 'bi-palette' },
-                { id: 'GUIA_TURISTICA', hash: '#guia-turistica', label: 'Tours', icon: 'bi-compass' },
-                { id: 'TAXIS', hash: '#taxis', label: 'Taxis', icon: 'bi-car-front-fill' },
-                { id: 'LANCHAS', hash: '#lanchas', label: 'Lanchas', icon: 'bi-tsunami' },
-                { id: 'TINTORERIA', hash: '#tintoreria', label: 'Tintorería', icon: 'bi-box-seam' },
-                { id: 'ZAPATERIA', hash: '#zapateria', label: 'Zapatería', icon: 'bi-tag' },
-                { id: 'MANICURISTA', hash: '#manicurista', label: 'Manicurista', icon: 'bi-hand-index-thumb' },
-                { id: 'PEDICURISTA', hash: '#pedicurista', label: 'Pedicurista', icon: 'bi-person-walking' },
-                { id: 'TECNOLOGIA', hash: '#tecnologia', label: 'Tecnología', icon: 'bi-laptop' },
-                { id: 'ALQUILER_ESPACIOS', hash: '#alquiler-espacios', label: 'Espacios', icon: 'bi-building' },
-                { id: 'ALQUILER_EQUIPOS', hash: '#alquiler-equipos', label: 'Equipos', icon: 'bi-speaker' },
-                { id: 'GIMNASIO', hash: '#gimnasio', label: 'Gimnasio', icon: 'bi-heart-pulse' },
-                { id: 'PADEL', hash: '#padel', label: 'Pádel', icon: 'bi-circle' },
-                { id: 'GUARDERIA', hash: '#guarderia', label: 'Guardería', icon: 'bi-emoji-smile' },
-                { id: 'CINE', hash: '#cine', label: 'Cine', icon: 'bi-film' },
-                { id: 'PISCINA', hash: '#piscina', label: 'Piscina', icon: 'bi-water' },
-                { id: 'PLAYA', hash: '#playa', label: 'Playa', icon: 'bi-sun' },
-                { id: 'GOLF', hash: '#golf', label: 'Golf', icon: 'bi-flag' },
-                { id: 'LENCERIA', hash: '#lenceria', label: 'Lencería', icon: 'bi-shield-square' },
-                { id: 'TENIS', hash: '#tenis', label: 'Tenis', icon: 'bi-dribbble' },
-                { id: 'SURF', hash: '#surf', label: 'Surf', icon: 'bi-tsunami' },
-                { id: 'CABALLOS', hash: '#caballos', label: 'Caballos', icon: 'bi-postage' },
-                { id: 'CUATRIMOTOS', hash: '#cuatrimotos', label: 'Cuatrimotos', icon: 'bi-truck' },
-                { id: 'HELADERIA', hash: '#heladeria', label: 'Heladería', icon: 'bi-cup-hot' },
-                { id: 'BODEGON', hash: '#bodegon', label: 'Bodegón', icon: 'bi-shop-window' },
-                { id: 'TIENDA', hash: '#tienda', label: 'Tienda', icon: 'bi-bag-check' },
-                { id: 'BUCEO', hash: '#buceo', label: 'Buceo', icon: 'bi-eye' },
-                { id: 'PARAPENTE', hash: '#parapente', label: 'Parapente', icon: 'bi-wind' },
-                { id: 'PESCA', hash: '#pesca', label: 'Pesca', icon: 'bi-anchor' },
-                { id: 'VEHICULOS', hash: '#vehiculos', label: 'Rústicos 4x4', icon: 'bi-ev-front' },
-                { id: 'EVENTOS', hash: '#eventos', label: 'Eventos', icon: 'bi-balloon' }
-            ];
-
-            staffPosModules.forEach(mod => {
-                if (perms.includes(mod.id) || (mod.id === 'HOUSEKEEPING' && perms.length === 0)) {
-                    menuHtml += `<li class="nav-item"><a class="nav-link ${mod.class || ''}" href="${mod.hash}"><i class="bi ${mod.icon} me-1"></i>${mod.label}</a></li>`;
-                }
-            });
-
-            menuHtml += `<li class="nav-item"><a class="nav-link" href="#consumos"><i class="bi bi-receipt me-1"></i>Consumos</a></li>`;
+        } else if (isRecepcion) {
+            menuHtml += `
+                <li class="nav-item"><a class="nav-link fw-bold text-primary" href="#habitaciones"><i class="bi bi-grid-3x3-gap-fill me-1"></i>Rack Habitaciones (Check-in / POS)</a></li>
+                <li class="nav-item"><a class="nav-link fw-bold" href="#facturacion"><i class="bi bi-file-earmark-pdf-fill me-1"></i>Facturación & Comprobantes</a></li>
+            `;
         } else {
             menuHtml += `
                 <li class="nav-item"><a class="nav-link" href="#habitaciones"><i class="bi bi-grid-3x3-gap me-1"></i>Rack</a></li>
@@ -383,9 +344,10 @@ export const Router = {
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
                         <li><span class="dropdown-item-text text-muted small">${user.email}</span></li>
-                        <li><span class="dropdown-item-text text-muted small fw-bold">Rol: ${user.role}</span></li>
+                        <li><span class="dropdown-item-text text-muted small fw-bold">Rol: ${user.role} (${isRecepcion ? 'Modo Recepción' : 'Modo Admin'})</span></li>
                         <li><hr class="dropdown-divider"></li>
                         ${!isSuperAdmin ? `
+                            <li><button class="dropdown-item" id="btnToggleRecepcionMode"><i class="bi bi-display me-2 text-primary"></i>Vista ${isRecepcion ? 'Administración' : 'Recepción Only'}</button></li>
                             <li><a class="dropdown-item" href="#ajustes"><i class="bi bi-gear me-2 text-primary"></i>Perfil del Hotel</a></li>
                             <li><a class="dropdown-item" href="#pagos"><i class="bi bi-credit-card me-2 text-success"></i>Suscripción / Membresía</a></li>
                             <li><hr class="dropdown-divider"></li>
@@ -395,6 +357,16 @@ export const Router = {
                 </div>
             </div>
         `;
+
+        navContainer.innerHTML = menuHtml;
+
+        const btnToggleRec = document.getElementById('btnToggleRecepcionMode');
+        if (btnToggleRec) {
+            btnToggleRec.onclick = () => {
+                State.toggleRecepcionMode();
+                this.handleRoute();
+            };
+        }
 
         navContainer.innerHTML = menuHtml;
 

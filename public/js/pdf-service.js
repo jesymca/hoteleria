@@ -104,6 +104,17 @@ export const PDFService = {
         doc.setTextColor(25, 135, 84);
         doc.text(`TOTAL EN BOLÍVARES: Bs. ${Number(invoice.total_ves || invoice.totalVes).toFixed(2)}`, 130, finalY + 22);
 
+        // Save PDF file
+        const pStatus = (invoice.payment_status || 'PAID') === 'PAID' ? 'PAGADO' : 'CRÉDITO / PENDIENTE';
+        const pColor = pStatus === 'PAGADO' ? [25, 135, 84] : [220, 53, 69];
+
+        doc.setFillColor(...pColor);
+        doc.roundedRect(14, finalY + 4, 100, 16, 2, 2, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.text(`CONDICIÓN DE PAGO: ${pStatus}`, 18, finalY + 14);
+
         // Footer Note
         doc.setFontSize(8);
         doc.setTextColor(120, 120, 120);
@@ -111,7 +122,8 @@ export const PDFService = {
         doc.text('Valores liquidados a la Tasa Oficial de Cambio emitida por el Banco Central de Venezuela (BCV). Gracias por su preferencia.', 14, 280);
 
         // Save PDF file
-        const fileName = `Factura_${hotel.name.replace(/\s+/g, '_')}_${invoice.invoice_number || invoice.invoiceNumber}.pdf`;
+        const safeHotelName = (hotel.name || 'Hotel').replace(/[^\w\s-]/gi, '').replace(/\s+/g, '_');
+        const fileName = `Factura_${safeHotelName}_${invoice.invoice_number || invoice.invoiceNumber}.pdf`;
         doc.save(fileName);
     }
 };

@@ -69,6 +69,19 @@ export const State = {
         return u && u.role === 'HOTEL_STAFF';
     },
 
+    isRecepcionOnly() {
+        const u = this.getUser();
+        if (!u) return false;
+        if (u.role === 'HOTEL_STAFF') return true;
+        return localStorage.getItem('saas_recepcion_mode') === 'true';
+    },
+
+    toggleRecepcionMode() {
+        const current = localStorage.getItem('saas_recepcion_mode') === 'true';
+        localStorage.setItem('saas_recepcion_mode', (!current).toString());
+        return !current;
+    },
+
     toggleDarkMode(isDark) {
         if (isDark) {
             document.body.setAttribute('data-theme', 'dark');
