@@ -826,38 +826,46 @@ export default async function handler(req, res) {
         }
 
         if (req.method === 'POST') {
-            const { roomId, guestId, checkInDate, checkOutDate, depositUsd, totalAmountUsd, notes, isCheckInImmediate } = req.body || {};
-            if (!roomId || !guestId || !checkInDate || !checkOutDate) {
-                return res.status(400).json({ error: 'Habitación, Huésped y Fechas son requeridos.' });
+            try {
+                const { roomId, guestId, checkInDate, checkOutDate, depositUsd, totalAmountUsd, notes, isCheckInImmediate } = req.body || {};
+                if (!roomId || !guestId || !checkInDate || !checkOutDate) {
+                    return res.status(400).json({ error: 'Habitación, Huésped y Fechas son requeridos.' });
+                }
+
+                const safeTotalUsd = isNaN(parseFloat(totalAmountUsd)) ? 0 : parseFloat(totalAmountUsd);
+                const safeDepositUsd = isNaN(parseFloat(depositUsd)) ? 0 : parseFloat(depositUsd);
+
+                const overlapCheck = await db.execute({
+                    sql: `SELECT id FROM bookings
+                          WHERE hotel_id = ? AND room_id = ? AND status IN ('RESERVED', 'CHECKED_IN')
+                            AND (check_in_date < ? AND check_out_date > ?)`,
+                    args: [hotelId, roomId, checkOutDate, checkInDate]
+                });
+
+                if (overlapCheck.rows.length > 0) {
+                    return res.status(400).json({ error: 'La habitación ya posee una reserva confirmada en las fechas seleccionadas (Prevención de sobreventa).' });
+                }
+
+                const bookingId = 'bk_' + Date.now();
+                const initialStatus = isCheckInImmediate ? 'CHECKED_IN' : 'RESERVED';
+                const actualCheckIn = isCheckInImmediate ? new Date().toISOString() : null;
+
+                await db.execute({
+                    sql: `INSERT INTO bookings 
+                    (id, hotel_id, room_id, guest_id, check_in_date, check_out_date, actual_check_in, status, total_amount_usd, deposit_usd, notes)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    args: [bookingId, hotelId, roomId, guestId, checkInDate, checkOutDate, actualCheckIn, initialStatus, safeTotalUsd, safeDepositUsd, notes || '']
+                });
+
+                if (isCheckInImmediate) {
+                    await db.execute({ sql: 'UPDATE rooms SET status = "OCCUPIED" WHERE id = ? AND hotel_id = ?', args: [roomId, hotelId] });
+                }
+
+                return res.status(201).json({ message: isCheckInImmediate ? 'Check-in realizado exitosamente.' : 'Reserva creada.', bookingId });
+            } catch (err) {
+                console.error('Create booking error:', err);
+                return res.status(500).json({ error: `Error al crear reserva: ${err.message}` });
             }
-
-            const overlapCheck = await db.execute({
-                sql: `SELECT id FROM bookings
-                      WHERE hotel_id = ? AND room_id = ? AND status IN ('RESERVED', 'CHECKED_IN')
-                        AND (check_in_date < ? AND check_out_date > ?)`,
-                args: [hotelId, roomId, checkOutDate, checkInDate]
-            });
-
-            if (overlapCheck.rows.length > 0) {
-                return res.status(400).json({ error: 'La habitación ya posee una reserva confirmada en las fechas seleccionadas (Prevención de sobreventa).' });
-            }
-
-            const bookingId = 'bk_' + Date.now();
-            const initialStatus = isCheckInImmediate ? 'CHECKED_IN' : 'RESERVED';
-            const actualCheckIn = isCheckInImmediate ? new Date().toISOString() : null;
-
-            await db.execute({
-                sql: `INSERT INTO bookings 
-                (id, hotel_id, room_id, guest_id, check_in_date, check_out_date, actual_check_in, status, total_amount_usd, deposit_usd, notes)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                args: [bookingId, hotelId, roomId, guestId, checkInDate, checkOutDate, actualCheckIn, initialStatus, parseFloat(totalAmountUsd || 0), parseFloat(depositUsd || 0), notes || '']
-            });
-
-            if (isCheckInImmediate) {
-                await db.execute({ sql: 'UPDATE rooms SET status = "OCCUPIED" WHERE id = ? AND hotel_id = ?', args: [roomId, hotelId] });
-            }
-
-            return res.status(201).json({ message: isCheckInImmediate ? 'Check-in realizado exitosamente.' : 'Reserva creada.', bookingId });
         }
     }
 

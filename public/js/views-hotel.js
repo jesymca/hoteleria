@@ -855,7 +855,11 @@ export const ViewsHotel = {
                             }
                             try {
                                 const newG = await API.post('/guests', { fullName: name, documentType: docType, documentId: docId });
-                                guestId = newG.guest.id;
+                                guestId = (newG && newG.guest && newG.guest.id) ? newG.guest.id : (newG && newG.id ? newG.id : null);
+                                if (!guestId) {
+                                    UI.showToast('No se pudo determinar el ID del huésped.', 'danger');
+                                    return;
+                                }
                             } catch (err) {
                                 UI.showToast('Error al registrar huésped: ' + err.message, 'danger');
                                 return;
@@ -873,8 +877,9 @@ export const ViewsHotel = {
                             return;
                         }
 
-                        const roomOption = document.querySelector(`#ciRoomSelect option[value="${roomId}"]`);
-                        const nightPrice = roomOption ? parseFloat(roomOption.getAttribute('data-price') || 0) : 0;
+                        const roomSelect = document.getElementById('ciRoomSelect');
+                        const selectedOption = roomSelect ? roomSelect.options[roomSelect.selectedIndex] : null;
+                        const nightPrice = selectedOption ? parseFloat(selectedOption.getAttribute('data-price') || 0) : 0;
                         const d1 = new Date(checkInDate);
                         const d2 = new Date(checkOutDate);
                         const diffDays = Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)));
